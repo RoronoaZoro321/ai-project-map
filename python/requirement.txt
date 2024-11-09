@@ -1,0 +1,7 @@
+pyswip
+tkinter
+matplotlib
+threading
+osmnx
+folium
+geopy
