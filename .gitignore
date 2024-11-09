@@ -164,3 +164,7 @@ cython_debug/
 
 # cache folder
 cache/
+
+.DS_Store
+
+.vscode

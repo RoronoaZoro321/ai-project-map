@@ -1,7 +1,7 @@
 pyswip
-tkinter
+tk
+networkx
 matplotlib
-threading
 osmnx
 folium
 geopy
