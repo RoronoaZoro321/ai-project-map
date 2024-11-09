@@ -4,8 +4,8 @@
 % Dynamic Declarations
 % =========================
 
-% Declare predicates that will be modified at runtime as dynamic
 :- dynamic edge/3.
+:- dynamic mode_speed/2.
 
 % =========================
 % Map Representation
@@ -15,7 +15,6 @@
 % Define the edges of the graph with distances between nodes.
 % Edges are defined in both directions to represent an undirected graph.
 
-% Initial graph edges
 edge(a, b, 5).
 edge(b, a, 5).
 
@@ -50,10 +49,15 @@ edge(f, e, 1).
 % mode_speed(Mode, SpeedInKmPerHour).
 % Define the speed for each mode of transportation.
 
-mode_speed(car, 60).
-mode_speed(walking, 5).
-mode_speed(motorcycle, 80).
-mode_speed(airplane, 800).
+reset_speeds :-
+    retractall(mode_speed(_, _)),
+    assert(mode_speed(car, 60)),
+    assert(mode_speed(walking, 5)),
+    assert(mode_speed(motorcycle, 80)),
+    assert(mode_speed(airplane, 800)).
+
+% Initialize mode speeds
+:- reset_speeds.
 
 % =========================
 % Travel Time Calculation
@@ -67,7 +71,7 @@ travel_time(Distance, Mode, Time) :-
     Time is Distance / Speed.
 
 % =========================
-% Dijkstras Algorithm
+% Dijkstra's Algorithm
 % =========================
 
 % Comparator predicate for predsort/3
@@ -82,7 +86,7 @@ shortest_path(Start, Goal, Path, Distance) :-
     dijkstra([[Start, [Start], 0]], Goal, RevPath, Distance),
     reverse(RevPath, Path).
 
-% Dijkstras helper predicate using predsort/3
+% Dijkstra's helper predicate using predsort/3
 dijkstra([[Goal, Path, Dist] | _], Goal, Path, Dist).
 dijkstra([[CurrentNode, CurrentPath, CurrentDist] | Rest], Goal, Path, Dist) :-
     findall(
@@ -104,14 +108,15 @@ dijkstra([[CurrentNode, CurrentPath, CurrentDist] | Rest], Goal, Path, Dist) :-
 
 % remove_edge(Node1, Node2)
 % Removes an edge between Node1 and Node2 to simulate an obstacle.
+% Succeeds if the edge exists, fails otherwise.
 
 remove_edge(Node1, Node2) :-
-    retract(edge(Node1, Node2, Distance1)),
-    retract(edge(Node2, Node1, Distance2)),
-    format('Obstacle introduced between ~w and ~w~n', [Node1, Node2]),
-    !.
-remove_edge(_, _) :-
-    format('No edge exists between the specified nodes.~n').
+    (   retract(edge(Node1, Node2, _)),
+        retract(edge(Node2, Node1, _))
+    ->  format('Obstacle introduced between ~w and ~w~n', [Node1, Node2])
+    ;   format('No edge exists between the specified nodes.~n'),
+        fail
+    ).
 
 % =========================
 % Adding Nodes and Edges
@@ -130,22 +135,36 @@ add_edge(Node1, Node2, _) :-
     format('Edge already exists between ~w and ~w~n', [Node1, Node2]).
 
 % =========================
-% Random Obstacle Handling (Disabled)
+% Reset Functions
 % =========================
 
-% remove_random_edge/0
-% Randomly remove an edge to simulate an obstacle.
-% Currently disabled.
+% reset_edges/0
+% Resets the edges to their original state.
 
-% remove_random_edge :-
-%     findall((N1, N2, D), edge(N1, N2, D), Edges),
-%     length(Edges, Len),
-%     Len > 0,
-%     random_between(1, Len, Index),
-%     nth1(Index, Edges, (Node1, Node2, Distance)),
-%     retract(edge(Node1, Node2, Distance)),
-%     retract(edge(Node2, Node1, Distance)), % Remove both directions
-%     format('Obstacle introduced between ~w and ~w~n', [Node1, Node2]).
+reset_edges :-
+    retractall(edge(_, _, _)),
+    % Re-define the edges in both directions
+    assert(edge(a, b, 5)), assert(edge(b, a, 5)),
+    assert(edge(a, c, 10)), assert(edge(c, a, 10)),
+    assert(edge(b, c, 2)), assert(edge(c, b, 2)),
+    assert(edge(b, d, 3)), assert(edge(d, b, 3)),
+    assert(edge(c, d, 1)), assert(edge(d, c, 1)),
+    assert(edge(c, e, 7)), assert(edge(e, c, 7)),
+    assert(edge(d, e, 2)), assert(edge(e, d, 2)),
+    assert(edge(d, f, 3)), assert(edge(f, d, 3)),
+    assert(edge(e, f, 1)), assert(edge(f, e, 1)).
+
+% reset_speeds/0
+% Resets the transportation modes to their initial speeds.
+
+% Already defined above
+
+% reset_all/0
+% Resets the edges and transportation modes to their initial states.
+
+reset_all :-
+    reset_edges,
+    reset_speeds.
 
 % =========================
 % Main Predicate
@@ -175,22 +194,6 @@ show_graph :-
     forall(member((Node1, Node2, Distance), Edges),
           format('Edge from ~w to ~w with distance ~w~n', [Node1, Node2, Distance])).
 
-% reset_edges/0
-% Resets the edges to their original state.
-
-reset_edges :-
-    retractall(edge(_, _, _)),
-    % Re-define the edges in both directions
-    assert(edge(a, b, 5)), assert(edge(b, a, 5)),
-    assert(edge(a, c, 10)), assert(edge(c, a, 10)),
-    assert(edge(b, c, 2)), assert(edge(c, b, 2)),
-    assert(edge(b, d, 3)), assert(edge(d, b, 3)),
-    assert(edge(c, d, 1)), assert(edge(d, c, 1)),
-    assert(edge(c, e, 7)), assert(edge(e, c, 7)),
-    assert(edge(d, e, 2)), assert(edge(e, d, 2)),
-    assert(edge(d, f, 3)), assert(edge(f, d, 3)),
-    assert(edge(e, f, 1)), assert(edge(f, e, 1)).
-
 % =========================
 % Example Usage
 % =========================
@@ -212,6 +215,12 @@ Obstacle introduced between c and d
 Path = [a, b, d, e, f],
 Distance = 11,
 Time = 0.18333333333333332.
+
+?- remove_edge(c, d).
+No edge exists between the specified nodes.
+
+?- reset_all.
+% Resets the graph and transportation modes to initial state.
 
 Note: If no path is found due to obstacles, the query will fail.
 */
