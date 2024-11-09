@@ -24,8 +24,8 @@ class MapNavigationApp:
         # Create GUI components
         self.create_widgets()
 
-        # Start obstacle timer
-        self.start_obstacle_timer()
+        # Start obstacle timer (Disabled for now)
+        # self.start_obstacle_timer()
 
     def create_widgets(self):
         # Labels and Entry fields for Start and Goal nodes
@@ -56,13 +56,46 @@ class MapNavigationApp:
         )
         self.cancel_button.grid(row=3, column=1, pady=10)
 
+        # Obstacle Controller
+        tk.Label(self.root, text="Obstacle Controller", font=("Helvetica", 14)).grid(
+            row=4, column=0, columnspan=2, pady=10
+        )
+        tk.Label(self.root, text="Node 1:").grid(row=5, column=0, sticky="e")
+        self.obstacle_node1_entry = tk.Entry(self.root)
+        self.obstacle_node1_entry.grid(row=5, column=1, padx=5, pady=5)
+        tk.Label(self.root, text="Node 2:").grid(row=6, column=0, sticky="e")
+        self.obstacle_node2_entry = tk.Entry(self.root)
+        self.obstacle_node2_entry.grid(row=6, column=1, padx=5, pady=5)
+        self.remove_edge_button = tk.Button(
+            self.root, text="Remove Edge", command=self.remove_edge
+        )
+        self.remove_edge_button.grid(row=7, column=0, columnspan=2, pady=5)
+
+        # Add Node/Edge Controller
+        tk.Label(self.root, text="Add Edge", font=("Helvetica", 14)).grid(
+            row=8, column=0, columnspan=2, pady=10
+        )
+        tk.Label(self.root, text="From Node:").grid(row=9, column=0, sticky="e")
+        self.add_node1_entry = tk.Entry(self.root)
+        self.add_node1_entry.grid(row=9, column=1, padx=5, pady=5)
+        tk.Label(self.root, text="To Node:").grid(row=10, column=0, sticky="e")
+        self.add_node2_entry = tk.Entry(self.root)
+        self.add_node2_entry.grid(row=10, column=1, padx=5, pady=5)
+        tk.Label(self.root, text="Distance:").grid(row=11, column=0, sticky="e")
+        self.add_distance_entry = tk.Entry(self.root)
+        self.add_distance_entry.grid(row=11, column=1, padx=5, pady=5)
+        self.add_edge_button = tk.Button(
+            self.root, text="Add Edge", command=self.add_edge
+        )
+        self.add_edge_button.grid(row=12, column=0, columnspan=2, pady=5)
+
         # Label to display route information
         self.info_label = tk.Label(self.root, text="", justify="left")
-        self.info_label.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+        self.info_label.grid(row=13, column=0, columnspan=2, padx=10, pady=10)
 
         # Label to display the countdown timer
         self.timer_label = tk.Label(self.root, text="", font=("Helvetica", 16))
-        self.timer_label.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
+        self.timer_label.grid(row=14, column=0, columnspan=2, padx=10, pady=10)
 
     def find_route(self):
         # Cancel any existing countdown timer
@@ -137,39 +170,91 @@ class MapNavigationApp:
         # self.goal_entry.delete(0, tk.END)
         # self.mode_var.set('car')
 
-    def introduce_obstacle(self):
-        # Remove a random edge in Prolog
-        try:
-            list(self.prolog.query("remove_random_edge"))
-            # Schedule the GUI update in the main thread
-            self.root.after(0, self.handle_obstacle)
-        except Exception as e:
-            self.root.after(
-                0,
-                lambda: self.info_label.config(
-                    text=f"An error occurred while introducing obstacle: {e}"
-                ),
+    def remove_edge(self):
+        node1 = self.obstacle_node1_entry.get().strip().lower()
+        node2 = self.obstacle_node2_entry.get().strip().lower()
+
+        if not node1 or not node2:
+            messagebox.showwarning(
+                "Input Error", "Please enter both nodes to remove an edge."
             )
+            return
 
-    def handle_obstacle(self):
-        # Update the information label to inform the user
-        self.info_label.config(text="An obstacle has appeared! Recalculating route.")
-        self.timer_label.config(text="")
-        # Cancel any existing countdown timer
-        if self.countdown_timer:
-            self.root.after_cancel(self.countdown_timer)
-            self.countdown_timer = None
-        # Recalculate the route
-        self.find_route()
+        # Construct the Prolog query
+        query = f"remove_edge({node1}, {node2})"
+        try:
+            result = list(self.prolog.query(query))
+            # Inform the user
+            self.info_label.config(
+                text=f"Edge between {node1} and {node2} has been removed."
+            )
+            # Optionally, you can recalculate the route
+            # self.find_route()
+        except Exception as e:
+            self.info_label.config(text=f"An error occurred: {e}")
 
-    def start_obstacle_timer(self):
-        interval = random.randint(15, 30)  # Random interval between 15 and 30 seconds
-        self.obstacle_timer = Timer(interval, self.obstacle_timer_handler)
-        self.obstacle_timer.start()
+    def add_edge(self):
+        node1 = self.add_node1_entry.get().strip().lower()
+        node2 = self.add_node2_entry.get().strip().lower()
+        distance_str = self.add_distance_entry.get().strip()
 
-    def obstacle_timer_handler(self):
-        self.introduce_obstacle()
-        self.start_obstacle_timer()  # Restart the timer
+        if not node1 or not node2 or not distance_str:
+            messagebox.showwarning(
+                "Input Error",
+                "Please enter both nodes and the distance to add an edge.",
+            )
+            return
+
+        try:
+            distance = float(distance_str)
+        except ValueError:
+            messagebox.showwarning(
+                "Input Error", "Please enter a valid number for distance."
+            )
+            return
+
+        # Construct the Prolog query
+        query = f"add_edge({node1}, {node2}, {distance})"
+        try:
+            result = list(self.prolog.query(query))
+            # Inform the user
+            self.info_label.config(
+                text=f"Edge added between {node1} and {node2} with distance {distance}."
+            )
+            # Optionally, you can recalculate the route
+            # self.find_route()
+        except Exception as e:
+            self.info_label.config(text=f"An error occurred: {e}")
+
+    # The random obstacle functionality is disabled for now
+    # def introduce_obstacle(self):
+    #     # Remove a random edge in Prolog
+    #     try:
+    #         list(self.prolog.query('remove_random_edge'))
+    #         # Schedule the GUI update in the main thread
+    #         self.root.after(0, self.handle_obstacle)
+    #     except Exception as e:
+    #         self.root.after(0, lambda: self.info_label.config(text=f"An error occurred while introducing obstacle: {e}"))
+
+    # def handle_obstacle(self):
+    #     # Update the information label to inform the user
+    #     self.info_label.config(text="An obstacle has appeared! Recalculating route.")
+    #     self.timer_label.config(text="")
+    #     # Cancel any existing countdown timer
+    #     if self.countdown_timer:
+    #         self.root.after_cancel(self.countdown_timer)
+    #         self.countdown_timer = None
+    #     # Recalculate the route
+    #     self.find_route()
+
+    # def start_obstacle_timer(self):
+    #     interval = random.randint(15, 30)  # Random interval between 15 and 30 seconds
+    #     self.obstacle_timer = Timer(interval, self.obstacle_timer_handler)
+    #     self.obstacle_timer.start()
+
+    # def obstacle_timer_handler(self):
+    #     self.introduce_obstacle()
+    #     self.start_obstacle_timer()  # Restart the timer
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -177,7 +262,7 @@ class MapNavigationApp:
 
     def on_closing(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            # Cancel the obstacle timer
+            # Cancel the obstacle timer if it exists
             if self.obstacle_timer:
                 self.obstacle_timer.cancel()
             # Cancel the countdown timer
