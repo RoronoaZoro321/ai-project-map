@@ -71,7 +71,7 @@ travel_time(Distance, Mode, Time) :-
     Time is Distance / Speed.
 
 % =========================
-% Dijkstra's Algorithm
+% Dijkstras Algorithm
 % =========================
 
 % Comparator predicate for predsort/3
@@ -86,7 +86,7 @@ shortest_path(Start, Goal, Path, Distance) :-
     dijkstra([[Start, [Start], 0]], Goal, RevPath, Distance),
     reverse(RevPath, Path).
 
-% Dijkstra's helper predicate using predsort/3
+% Dijkstras helper predicate using predsort/3
 dijkstra([[Goal, Path, Dist] | _], Goal, Path, Dist).
 dijkstra([[CurrentNode, CurrentPath, CurrentDist] | Rest], Goal, Path, Dist) :-
     findall(
