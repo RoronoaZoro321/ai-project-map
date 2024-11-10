@@ -6,6 +6,7 @@
 
 :- dynamic edge/4.
 :- dynamic mode/2.
+:- dynamic node/3.
 
 % =========================
 % Map Representation
@@ -31,6 +32,25 @@ reset_edges :-
 
 % Initialize edges
 :- reset_edges.
+
+% =========================
+% Node Positions
+% =========================
+
+% node(Name, X, Y).
+% Define positions for each node.
+
+reset_nodes :-
+    retractall(node(_, _, _)),
+    assert(node(a, 0, 0)),
+    assert(node(b, 5, 0)),
+    assert(node(c, 5, 5)),
+    assert(node(d, 10, 5)),
+    assert(node(e, 10, 10)),
+    assert(node(f, 15, 10)).
+
+% Initialize nodes
+:- reset_nodes.
 
 % =========================
 % Transportation Modes
@@ -61,6 +81,38 @@ travel_time(Distance, Mode, Time) :-
     Time is Distance / Speed.
 
 % =========================
+% Heuristic Function
+% =========================
+
+% heuristic(Node1, Node2, HeuristicValue).
+% Calculate the Euclidean distance between Node1 and Node2.
+
+heuristic(Node1, Node2, HeuristicValue) :-
+    node(Node1, X1, Y1),
+    node(Node2, X2, Y2),
+    DX is X1 - X2,
+    DY is Y1 - Y2,
+    HeuristicValue is sqrt(DX*DX + DY*DY).
+
+% =========================
+% Shortest Path Finder
+% =========================
+
+% shortest_path(StartNode, EndNode, Algorithm, Path, TotalDistance).
+% Find the shortest path between StartNode and EndNode using the specified algorithm.
+
+shortest_path(Start, Goal, Algorithm, Path, Distance) :-
+    ( Algorithm = dijkstra ->
+        dijkstra([[Start, [Start], 0]], Goal, RevPath, Distance),
+        reverse(RevPath, Path)
+    ; Algorithm = astar ->
+        heuristic(Start, Goal, H),
+        F is H,
+        a_star([[Start, [Start], 0, F]], Goal, RevPath, Distance),
+        reverse(RevPath, Path)
+    ).
+
+% =========================
 % Dijkstra's Algorithm
 % =========================
 
@@ -68,13 +120,6 @@ travel_time(Distance, Mode, Time) :-
 compare_dist(<, [_, _, Dist1], [_, _, Dist2]) :- Dist1 < Dist2.
 compare_dist(=, [_, _, Dist1], [_, _, Dist2]) :- Dist1 =:= Dist2.
 compare_dist(>, [_, _, Dist1], [_, _, Dist2]) :- Dist1 > Dist2.
-
-% shortest_path(StartNode, EndNode, Path, TotalDistance).
-% Find the shortest path between StartNode and EndNode.
-
-shortest_path(Start, Goal, Path, Distance) :-
-    dijkstra([[Start, [Start], 0]], Goal, RevPath, Distance),
-    reverse(RevPath, Path).
 
 % Dijkstra's helper predicate using predsort/3
 dijkstra([[Goal, Path, Dist] | _], Goal, Path, Dist).
@@ -92,6 +137,36 @@ dijkstra([[CurrentNode, CurrentPath, CurrentDist] | Rest], Goal, Path, Dist) :-
     append(Rest, NextNodes, UpdatedQueue),
     predsort(compare_dist, UpdatedQueue, SortedQueue),
     dijkstra(SortedQueue, Goal, Path, Dist).
+
+% =========================
+% A* Algorithm
+% =========================
+
+% Comparator predicate for predsort/3
+compare_f(<, [_, _, _, F1], [_, _, _, F2]) :- F1 < F2.
+compare_f(=, [_, _, _, F1], [_, _, _, F2]) :- F1 =:= F2.
+compare_f(>, [_, _, _, F1], [_, _, _, F2]) :- F1 > F2.
+
+% a_star(OpenList, GoalNode, Path, TotalCost).
+% Implements the A* search algorithm.
+
+a_star([[Goal, Path, G, _] | _], Goal, Path, G).
+a_star([[CurrentNode, CurrentPath, CurrentG, _] | Rest], Goal, Path, Distance) :-
+    findall(
+        [NextNode, [NextNode | CurrentPath], NewG, NewF],
+        (
+            edge(CurrentNode, NextNode, D, Delay),
+            \+ member(NextNode, CurrentPath),
+            TotalEdgeDistance is D + Delay,
+            NewG is CurrentG + TotalEdgeDistance,
+            heuristic(NextNode, Goal, H),
+            NewF is NewG + H
+        ),
+        NextNodes
+    ),
+    append(Rest, NextNodes, UpdatedQueue),
+    predsort(compare_f, UpdatedQueue, SortedQueue),
+    a_star(SortedQueue, Goal, Path, Distance).
 
 % =========================
 % Obstacle Handling
@@ -164,24 +239,25 @@ add_edge(Node1, Node2, _) :-
 % =========================
 
 % reset_all/0
-% Resets the edges and transportation modes to their initial states.
+% Resets the edges, nodes, and transportation modes to their initial states.
 
 reset_all :-
     reset_edges,
+    reset_nodes,
     reset_modes.
 
 % =========================
 % Main Predicate
 % =========================
 
-% find_route(StartNode, EndNode, Mode, Path, TotalDistance, TotalTime).
-% Finds the shortest path and calculates travel time based on the mode.
+% find_route(StartNode, EndNode, Mode, Algorithm, Path, TotalDistance, TotalTime).
+% Finds the shortest path using the specified algorithm and calculates travel time.
 
-find_route(Start, Goal, Mode, Path, Distance, Time) :-
+find_route(Start, Goal, Mode, Algorithm, Path, Distance, Time) :-
     % Ensure the mode is valid
     mode(Mode, _),
-    % Find the shortest path
-    shortest_path(Start, Goal, Path, Distance),
+    % Find the shortest path using the specified algorithm
+    shortest_path(Start, Goal, Algorithm, Path, Distance),
     % Calculate travel time
     travel_time(Distance, Mode, Time).
 
@@ -197,30 +273,3 @@ show_graph :-
     format('Current graph edges:~n'),
     forall(member((Node1, Node2, Distance, Delay), Edges),
           format('Edge from ~w to ~w with distance ~w and delay ~w~n', [Node1, Node2, Distance, Delay])).
-
-% =========================
-% Example Usage
-% =========================
-
-/*
-Examples:
-
-?- find_route(a, f, car, Path, Distance, Time).
-Path = [a, b, c, d, e, f],
-Distance = 13,
-Time = 0.21666666666666667.
-
-?- add_delay(c, d, 5).
-Delay of 5 added between c and d
-
-?- find_route(a, f, car, Path, Distance, Time).
-Path = [a, b, d, e, f],
-Distance = 11,
-Time = 0.18333333333333332.
-
-?- remove_delay(c, d).
-Delay removed between c and d
-
-?- reset_all.
-% Resets the graph and transportation modes to initial state.
-*/

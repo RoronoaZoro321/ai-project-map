@@ -44,21 +44,35 @@ class MapNavigationApp:
         self.mode_menu = tk.OptionMenu(self.root, self.mode_var, *self.modes)
         self.mode_menu.grid(row=2, column=1, padx=5, pady=5)
 
+        # OptionMenu for selecting the algorithm
+        tk.Label(self.root, text="Algorithm:").grid(row=3, column=0, sticky="e")
+        self.algorithm_var = tk.StringVar(value="dijkstra")
+        self.algorithms = ["dijkstra", "astar"]
+        self.algorithm_menu = tk.OptionMenu(
+            self.root, self.algorithm_var, *self.algorithms
+        )
+        self.algorithm_menu.grid(row=3, column=1, padx=5, pady=5)
+
+        # Adjust the row numbers for subsequent widgets
+        next_row = 4
+
         # Button to find the route
         self.find_button = tk.Button(
             self.root, text="Find Route", command=self.find_route
         )
-        self.find_button.grid(row=3, column=0, pady=10)
+        self.find_button.grid(row=next_row, column=0, pady=10)
 
         # Cancel button to stop the countdown
         self.cancel_button = tk.Button(
             self.root, text="Cancel", command=self.cancel_route
         )
-        self.cancel_button.grid(row=3, column=1, pady=10)
+        self.cancel_button.grid(row=next_row, column=1, pady=10)
 
         # Reset button to reset the graph
         self.reset_button = tk.Button(self.root, text="Reset", command=self.reset_graph)
-        self.reset_button.grid(row=3, column=2, pady=10)
+        self.reset_button.grid(row=next_row, column=2, pady=10)
+
+        next_row += 1
 
         # Transportation Controller Button
         self.transport_button = tk.Button(
@@ -66,11 +80,13 @@ class MapNavigationApp:
             text="Transportation Controller",
             command=self.open_transport_controller,
         )
-        self.transport_button.grid(row=4, column=0, columnspan=3, pady=10)
+        self.transport_button.grid(row=next_row, column=0, columnspan=3, pady=10)
+
+        next_row += 1
 
         # Frames for Controllers
         controllers_frame = tk.Frame(self.root)
-        controllers_frame.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
+        controllers_frame.grid(row=next_row, column=0, columnspan=3, padx=5, pady=5)
 
         # Obstacle Controller Frame
         obstacle_frame = tk.LabelFrame(controllers_frame, text="Obstacle Controller")
@@ -127,17 +143,19 @@ class MapNavigationApp:
         )
         self.remove_delay_button.grid(row=4, column=0, columnspan=2, pady=5)
 
+        next_row += 1
+
         # Label to display route information
         self.info_label = tk.Label(self.root, text="", justify="left")
-        self.info_label.grid(row=6, column=0, columnspan=3, padx=10, pady=10)
+        self.info_label.grid(row=next_row, column=0, columnspan=3, padx=10, pady=10)
+
+        next_row += 1
 
         # Label to display the countdown timer
         self.timer_label = tk.Label(self.root, text="", font=("Helvetica", 16))
-        self.timer_label.grid(row=7, column=0, columnspan=3, padx=10, pady=10)
+        self.timer_label.grid(row=next_row, column=0, columnspan=3, padx=10, pady=10)
 
-        # Map visualization is handled by MapVisualizer (row=8)
-
-    # ... (Include all the methods as in the previous version, with adjustments to remove cost-related code.)
+        # Map visualization is handled by MapVisualizer (row=next_row+1)
 
     def open_transport_controller(self):
         # Create a new window for the transportation controller
@@ -215,17 +233,21 @@ class MapNavigationApp:
 
         goal = self.goal_entry.get().strip()
         mode = self.mode_var.get()
+        algorithm = self.algorithm_var.get()
 
         if not start or not goal:
             self.info_label.config(text="Please enter both start and goal nodes.")
             return
 
-        # Ensure nodes are lowercase to match Prolog atoms
+        # Ensure nodes and algorithm are lowercase to match Prolog atoms
         start = start.lower()
         goal = goal.lower()
+        algorithm = algorithm.lower()
 
-        # Construct the Prolog query
-        query = f"find_route({start}, {goal}, {mode}, Path, Distance, Time)"
+        # Construct the Prolog query with the algorithm parameter
+        query = (
+            f"find_route({start}, {goal}, {mode}, {algorithm}, Path, Distance, Time)"
+        )
         try:
             result = list(self.prolog.query(query))
             if result:
