@@ -1,8 +1,11 @@
 import requests
+import os
+from dotenv import load_dotenv
 
 class Geocoder:
     def __init__(self, api_key=None):
-        self.api_key = "AIzaSyAePMbLePyEY5xlBPBc9FA6ZVHc1I7ivAg"
+        load_dotenv()
+        self.api_key = os.getenv("GOOGLE_MAPS_API_KEY")
         self.url = "https://maps.googleapis.com/maps/api/geocode/json"
 
     def geocode(self, address):
