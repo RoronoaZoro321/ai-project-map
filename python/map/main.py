@@ -1,10 +1,23 @@
 from map import Map
-import osmnx as ox
+from geocoding import Geocoder
+
+def create_map_with_geocoding():
+    # Usage
+    start_address = "Lotus Srinakarinda"
+    end_address = "Jas Urban Srinakarin"
+    # Create Geocoder instance
+    geocoder = Geocoder()
+    # Geocode the start and end addresses
+    start_location = geocoder.geocode(start_address)
+    end_location = geocoder.geocode(end_address)
+    # Create Map instance
+    map = Map(start_location, end_location)
+    return map
 
 def create_map():
     # Usage
-    start_location = (37.7749, -122.4194)  # San Francisco
-    end_location = (37.8, -122.427)  # Near San Francisco
+    start_location = (13.621244148739478, 100.61953164076222)  # San Francisco
+    end_location = (13.626794128718828, 100.6149335353964)  # Near San Francisco
     # Create Map instance
     map = Map(start_location, end_location)
     return map
@@ -50,9 +63,11 @@ def get_fact(map):
     get_weight(map)
 
 def main():
+    # map = create_map_with_geocoding()
     map = create_map()
+    print(map)
     display_map(map)
-    get_fact(map)
+    # get_fact(map)
 
 if __name__ == "__main__":
     main()
