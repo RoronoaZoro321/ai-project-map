@@ -14,15 +14,40 @@
 
 % edge(Node1, Node2, Distance, Delay).
 
-% Edges will be added dynamically from the Python code.
+% Initialize edges
+reset_edges :-
+    retractall(edge(_, _, _, _)),
+    % Re-define the edges in both directions with Delay = 0
+    assert(edge(a, b, 5, 0)), assert(edge(b, a, 5, 0)),
+    assert(edge(a, c, 10, 0)), assert(edge(c, a, 10, 0)),
+    assert(edge(b, c, 2, 0)), assert(edge(c, b, 2, 0)),
+    assert(edge(b, d, 3, 0)), assert(edge(d, b, 3, 0)),
+    assert(edge(c, d, 1, 0)), assert(edge(d, c, 1, 0)),
+    assert(edge(c, e, 7, 0)), assert(edge(e, c, 7, 0)),
+    assert(edge(d, e, 2, 0)), assert(edge(e, d, 2, 0)),
+    assert(edge(d, f, 3, 0)), assert(edge(f, d, 3, 0)),
+    assert(edge(e, f, 1, 0)), assert(edge(f, e, 1, 0)).
+
+% Initialize edges
+:- reset_edges.
 
 % =========================
 % Node Positions
 % =========================
 
-% node(Name, Latitude, Longitude).
+% node(Name, X, Y).
 
-% Nodes will be added dynamically from the Python code.
+reset_nodes :-
+    retractall(node(_, _, _)),
+    assert(node(a, 0, 0)),
+    assert(node(b, 5, 0)),
+    assert(node(c, 5, 5)),
+    assert(node(d, 10, 5)),
+    assert(node(e, 10, 10)),
+    assert(node(f, 15, 10)).
+
+% Initialize nodes
+:- reset_nodes.
 
 % =========================
 % Transportation Modes
@@ -48,6 +73,6 @@ reset_modes :-
 % Resets the edges, nodes, and transportation modes to their initial states.
 
 reset_all :-
-    retractall(edge(_, _, _, _)),
-    retractall(node(_, _, _)),
+    reset_edges,
+    reset_nodes,
     reset_modes.

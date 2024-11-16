@@ -19,12 +19,11 @@ travel_time(Distance, Mode, Time) :-
 % Calculate the Euclidean distance between Node1 and Node2.
 
 heuristic(Node1, Node2, HeuristicValue) :-
-    node(Node1, Lat1, Lon1),
-    node(Node2, Lat2, Lon2),
-    % Convert latitude and longitude differences into approximate distance
-    DLat is Lat2 - Lat1,
-    DLon is Lon2 - Lon1,
-    HeuristicValue is sqrt(DLat * DLat + DLon * DLon) * 111.32. % Approximate conversion to km
+    node(Node1, X1, Y1),
+    node(Node2, X2, Y2),
+    DX is X1 - X2,
+    DY is Y1 - Y2,
+    HeuristicValue is sqrt(DX*DX + DY*DY).
 
 % =========================
 % Obstacle Handling
