@@ -20,7 +20,7 @@ shortest_path(Start, Goal, Algorithm, Path, Distance) :-
         reverse(RevPath, Path)
     ).
 
-% Dijkstra's Algorithm
+% Dijkstras Algorithm
 compare_dist(<, [_, _, Dist1], [_, _, Dist2]) :- Dist1 < Dist2.
 compare_dist(=, [_, _, Dist1], [_, _, Dist2]) :- Dist1 =:= Dist2.
 compare_dist(>, [_, _, Dist1], [_, _, Dist2]) :- Dist1 > Dist2.
