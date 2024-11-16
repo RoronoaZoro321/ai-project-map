@@ -5,7 +5,9 @@ from tkinter import ttk, messagebox
 from map import Map
 import osmnx as ox
 import networkx as nx
-import webbrowser
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import time
 
 
 def create_map(start_lat, start_lon, end_lat, end_lon):
@@ -42,10 +44,36 @@ def compute_shortest_path(map_instance, algorithm):
 
     map_instance.route = route  # Update the route in the map instance
 
-    travel_time = sum(G[u][v][0]["travel_time"] for u, v in zip(route[:-1], route[1:]))
+    # Compute distances and times
+    distances = []
+    times = []
+    cumulative_distances = [0]
+    cumulative_times = [0]
+    total_distance = 0
+    total_time = 0
+
+    for u, v in zip(route[:-1], route[1:]):
+        data = G.get_edge_data(u, v)[0]
+        length = data["length"]  # in meters
+        travel_time = data["travel_time"]  # in seconds
+        total_distance += length
+        total_time += travel_time
+        distances.append(length)
+        times.append(travel_time)
+        cumulative_distances.append(total_distance)
+        cumulative_times.append(total_time)
+
+    map_instance.distances = distances
+    map_instance.times = times
+    map_instance.cumulative_distances = cumulative_distances
+    map_instance.cumulative_times = cumulative_times
+    map_instance.total_distance = total_distance
+    map_instance.total_time = total_time
+
     output = f"Shortest path from {orig_node} to {dest_node} using {algorithm}:\n"
     output += f"Path: {route}\n"
-    output += f"Total travel time (seconds): {travel_time:.2f}"
+    output += f"Total travel time (seconds): {total_time:.2f}\n"
+    output += f"Total distance (meters): {total_distance:.2f}"
     return output
 
 
@@ -64,12 +92,169 @@ def on_compute_button_click():
         result = compute_shortest_path(map_instance, algorithm)
         # Display the result in a message box
         messagebox.showinfo("Shortest Path Result", result)
-        # Display the map with or without visualization
-        if not visualize:
-            map_instance.create_map_with_folium("map_with_folium.html")
-            # Open the HTML file in a web browser
-            webbrowser.open("map_with_folium.html")
+
+        # Update the labels for total time and distance
+        total_time_label.config(text=f"Total Time: {map_instance.total_time:.2f} sec")
+        total_distance_label.config(
+            text=f"Total Distance: {map_instance.total_distance:.2f} m"
+        )
+        remaining_time_label.config(
+            text=f"Remaining Time: {map_instance.total_time:.2f} sec"
+        )
+        remaining_distance_label.config(
+            text=f"Remaining Distance: {map_instance.total_distance:.2f} m"
+        )
+
+        if visualize:
+            # Set up the figure and canvas
+            fig = plt.Figure(figsize=(8, 8))
+            ax = fig.add_subplot(111)
+
+            # Clear previous canvas if any
+            if hasattr(root, "canvas") and root.canvas is not None:
+                root.canvas.get_tk_widget().destroy()
+                root.canvas = None
+
+            root.canvas = FigureCanvasTkAgg(fig, master=root)
+            root.canvas.get_tk_widget().grid(row=9, column=0, columnspan=2)
+
+            # Plot the graph
+            ox.plot_graph(
+                map_instance.G,
+                ax=ax,
+                node_color="skyblue",
+                edge_color="gray",
+                node_size=15,
+                show=False,
+                close=False,
+            )
+
+            if not map_instance.route:
+                print("No route to display.")
+                return
+
+            route_latlng = [
+                (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
+                for node in map_instance.route
+            ]
+
+            # Plot start and end points
+            ax.plot(
+                map_instance.start_location[1],
+                map_instance.start_location[0],
+                marker="o",
+                color="green",
+                markersize=10,
+                label="Start",
+            )
+            ax.plot(
+                map_instance.end_location[1],
+                map_instance.end_location[0],
+                marker="o",
+                color="red",
+                markersize=10,
+                label="End",
+            )
+
+            # Prepare data for animation
+            x_data = [point[1] for point in route_latlng]
+            y_data = [point[0] for point in route_latlng]
+
+            (line,) = ax.plot([], [], color="purple", linewidth=3, label="Route")
+            (point_plot,) = ax.plot([], [], marker="o", color="blue", markersize=8)
+
+            # Store necessary variables in root
+            root.map_instance = map_instance
+            root.start_time = time.time()
+            root.line = line
+            root.point_plot = point_plot
+            root.x_data = x_data
+            root.y_data = y_data
+
+            ax.set_title("Real-Time Route Traversal")
+            ax.legend()
+            root.canvas.draw()
+
+            # Define the update_traversal function and attach it to root
+            def update_traversal():
+                elapsed_time = time.time() - root.start_time
+                map_instance = root.map_instance
+                x_data = root.x_data
+                y_data = root.y_data
+                line = root.line
+                point_plot = root.point_plot
+
+                if elapsed_time >= map_instance.total_time:
+                    # Animation finished
+                    remaining_time_label.config(text=f"Remaining Time: 0.00 sec")
+                    remaining_distance_label.config(text=f"Remaining Distance: 0.00 m")
+                    # Set marker to end position
+                    point_plot.set_data(x_data[-1], y_data[-1])
+                    line.set_data(x_data, y_data)
+                    root.canvas.draw()
+                    return
+                else:
+                    # Update remaining time and distance
+                    remaining_time = map_instance.total_time - elapsed_time
+                    remaining_distance = map_instance.total_distance * (
+                        remaining_time / map_instance.total_time
+                    )
+                    remaining_time_label.config(
+                        text=f"Remaining Time: {remaining_time:.2f} sec"
+                    )
+                    remaining_distance_label.config(
+                        text=f"Remaining Distance: {remaining_distance:.2f} m"
+                    )
+
+                    # Compute current position along the route
+                    cumulative_times = map_instance.cumulative_times
+                    idx = next(
+                        (i for i, t in enumerate(cumulative_times) if t > elapsed_time),
+                        len(cumulative_times) - 1,
+                    )
+
+                    if idx == 0:
+                        time_prev = 0
+                        time_curr = cumulative_times[1]
+                        frac = elapsed_time / time_curr if time_curr != 0 else 0
+                        x_prev = x_data[0]
+                        x_curr = x_data[1]
+                        y_prev = y_data[0]
+                        y_curr = y_data[1]
+                    else:
+                        time_prev = cumulative_times[idx - 1]
+                        time_curr = cumulative_times[idx]
+                        frac = (
+                            (elapsed_time - time_prev) / (time_curr - time_prev)
+                            if (time_curr - time_prev) != 0
+                            else 0
+                        )
+                        x_prev = x_data[idx - 1]
+                        x_curr = x_data[idx]
+                        y_prev = y_data[idx - 1]
+                        y_curr = y_data[idx]
+
+                    # Interpolate position
+                    x = x_prev + frac * (x_curr - x_prev)
+                    y = y_prev + frac * (y_curr - y_prev)
+
+                    # Update marker position
+                    point_plot.set_data(x, y)
+
+                    # Update line
+                    line.set_data(x_data[: idx + 1], y_data[: idx + 1])
+                    root.canvas.draw()
+
+                    # Schedule next update in 1 second
+                    root.after(1000, root.update_traversal)
+
+            # Attach the function to root
+            root.update_traversal = update_traversal
+
+            # Start the animation
+            root.update_traversal()
         else:
+            # Display static map without traversal
             map_instance.create_map_without_folium()
     except Exception as e:
         messagebox.showerror("Error", str(e))
@@ -115,7 +300,7 @@ end_lon_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 end_lon_entry.insert(0, "100.6149335353964")  # Default value
 
 # Visualization option
-visualize_var = tk.BooleanVar(value=False)
+visualize_var = tk.BooleanVar(value=True)
 visualize_checkbox = ttk.Checkbutton(
     root, text="Simulate Real-Time Traversal", variable=visualize_var
 )
@@ -126,6 +311,24 @@ compute_button = ttk.Button(
     root, text="Compute Shortest Path", command=on_compute_button_click
 )
 compute_button.grid(row=6, column=0, columnspan=2, padx=5, pady=10)
+
+# Total time label
+total_time_label = ttk.Label(root, text="Total Time: N/A")
+total_time_label.grid(row=7, column=0, padx=5, pady=5, sticky="w")
+
+# Total distance label
+total_distance_label = ttk.Label(root, text="Total Distance: N/A")
+total_distance_label.grid(row=8, column=0, padx=5, pady=5, sticky="w")
+
+# Remaining time label
+remaining_time_label = ttk.Label(root, text="Remaining Time: N/A")
+remaining_time_label.grid(row=7, column=1, padx=5, pady=5, sticky="w")
+
+# Remaining distance label
+remaining_distance_label = ttk.Label(root, text="Remaining Distance: N/A")
+remaining_distance_label.grid(row=8, column=1, padx=5, pady=5, sticky="w")
+
+root.canvas = None
 
 root.mainloop()
 from geocoding import Geocoder
