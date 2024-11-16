@@ -1,5 +1,3 @@
-# gui/visualization.py
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import osmnx as ox

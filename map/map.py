@@ -6,14 +6,22 @@ import osmnx as ox
 
 
 class Map:
-    def __init__(self, start_location, end_location):
+    def __init__(self, start_location, end_location, speed_kph=50):
+        """
+        Initializes the Map instance with start and end locations and transportation speed.
+
+        Args:
+            start_location (tuple): (latitude, longitude) of the start location.
+            end_location (tuple): (latitude, longitude) of the end location.
+            speed_kph (float): Speed in km/h based on transportation mode.
+        """
         self.start_location = start_location  # (lat, lon)
         self.end_location = end_location  # (lat, lon)
         self.distance_km = geodesic(start_location, end_location).km
         self.buffer_dist = max(
             self.distance_km * 2000, 1000
         )  # Ensure a minimum buffer distance of 1000 meters
-        self.G = self.generate_graph()
+        self.G = self.generate_graph(speed_kph)
         self.route = []  # Initialize the route
         self.distances = []  # Distance for each edge in the path
         self.times = []  # Travel time for each edge in the path
@@ -45,7 +53,16 @@ class Map:
             (self.start_location[1] + self.end_location[1]) / 2,
         )
 
-    def generate_graph(self):
+    def generate_graph(self, speed_kph):
+        """
+        Generates the road network graph based on the midpoint and buffer distance.
+
+        Args:
+            speed_kph (float): Speed in km/h to set for all edges.
+
+        Returns:
+            networkx.MultiDiGraph: The generated road network graph.
+        """
         try:
             # Suppress FutureWarnings related to bbox coordinate order
             with warnings.catch_warnings():
@@ -53,9 +70,11 @@ class Map:
                 G = ox.graph_from_point(
                     self.get_midpoint(), dist=self.buffer_dist, network_type="drive"
                 )
-            G = ox.add_edge_speeds(
-                G, fallback=50
-            )  # Set a fallback speed (e.g., 50 km/h)
+
+            # Set all edges' speed to the selected transportation mode's speed
+            for u, v, k, data in G.edges(keys=True, data=True):
+                data["speed_kph"] = speed_kph  # Override speed with selected mode
+            # Recalculate travel times based on the new speed
             G = ox.add_edge_travel_times(G)
             return G
         except Exception as e:

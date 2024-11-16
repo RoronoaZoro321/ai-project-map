@@ -3,6 +3,7 @@
 import time
 import random
 import tkinter as tk
+from utils.utils import format_time  # Import the helper function
 
 
 class Traversal:
@@ -19,8 +20,11 @@ class Traversal:
         Starts the traversal process.
         """
         self.cancelled = False
-        self.components.status_label.config(text="Traversal started.")
+        self.components.status_label.config(
+            text="Traversal started.", style="Info.TLabel"
+        )
         self.components.cancel_traversal_button.config(state="normal")
+        self.log_info("Traversal started.")
         self._traverse()
 
     def _traverse(self):
@@ -45,7 +49,10 @@ class Traversal:
         Updates the traversal visualization and logic.
         """
         if self.cancelled:
-            self.components.status_label.config(text="Traversal cancelled.")
+            self.components.status_label.config(
+                text="Traversal cancelled.", style="Error.TLabel"
+            )
+            self.log_info("Traversal cancelled.")
             return
 
         current_time = time.time()
@@ -61,7 +68,7 @@ class Traversal:
 
         if idx >= len(cumulative_times) - 1:
             # Traversal completed
-            self.components.remaining_time_label.config(text="Remaining Time: 0.00 sec")
+            self.components.remaining_time_label.config(text="Remaining Time: 00:00")
             self.components.remaining_distance_label.config(
                 text="Remaining Distance: 0.00 m"
             )
@@ -69,7 +76,10 @@ class Traversal:
                 self.visualization.x_data[-1], self.visualization.y_data[-1]
             )
             self.visualization.canvas.draw()
-            self.components.status_label.config(text="Traversal completed.")
+            self.components.status_label.config(
+                text="Traversal completed.", style="Info.TLabel"
+            )
+            self.log_info("Traversal completed.")
             self.components.cancel_traversal_button.config(state="disabled")
             return
 
@@ -82,8 +92,9 @@ class Traversal:
             else 0
         )
 
+        # Update time labels using format_time
         self.components.remaining_time_label.config(
-            text=f"Remaining Time: {max(remaining_time, 0):.2f} sec"
+            text=f"Remaining Time: {format_time(max(remaining_time, 0))}"
         )
         self.components.remaining_distance_label.config(
             text=f"Remaining Distance: {max(remaining_distance, 0):.2f} m"
@@ -94,6 +105,9 @@ class Traversal:
 
         # Define the edge as a sorted tuple to handle undirected edges uniformly
         edge = tuple(sorted((current_node, next_node)))
+
+        # Log current traversal
+        self.log_info(f"Traversing from Node {current_node} to Node {next_node}.")
 
         # Check if this edge has already been processed for delay
         if edge not in map_instance.processed_edges:
@@ -120,7 +134,7 @@ class Traversal:
 
                 # Update the GUI labels to reflect the new total_time and total_distance
                 self.components.total_time_label.config(
-                    text=f"Total Time: {map_instance.total_time:.2f} sec"
+                    text=f"Total Time: {format_time(map_instance.total_time)}"
                 )
                 self.components.total_distance_label.config(
                     text=f"Total Distance: {map_instance.total_distance:.2f} m"
@@ -128,7 +142,11 @@ class Traversal:
 
                 # Update the status label
                 self.components.status_label.config(
-                    text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {delay_time} seconds."
+                    text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}.",
+                    style="Error.TLabel",
+                )
+                self.log_info(
+                    f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}."
                 )
 
                 # Update the segment color to yellow
@@ -222,45 +240,20 @@ class Traversal:
         """
         self.cancelled = True
         self.components.cancel_traversal_button.config(state="disabled")
-        self.components.status_label.config(text="Traversal cancelled.")
+        self.components.status_label.config(
+            text="Traversal cancelled.", style="Error.TLabel"
+        )
+        self.log_info("Traversal cancelled.")
 
+    def log_info(self, message):
+        """
+        Appends a message to the information log.
 
-def calculate_traversal_metrics(map_instance):
-    """
-    Calculates distances, times, cumulative distances, and cumulative times for the path.
-    """
-    G = map_instance.G
-    path = map_instance.route
-
-    distances = []
-    times = []
-    cumulative_distances = [0]
-    cumulative_times = [0]
-    total_distance = 0
-    total_time = 0
-
-    for u, v in zip(path[:-1], path[1:]):
-        # Handle potential missing edges due to delays
-        if G.has_edge(u, v):
-            data = G.get_edge_data(u, v)[0]
-        elif G.has_edge(v, u):
-            data = G.get_edge_data(v, u)[0]
-        else:
-            # If edge is missing, set default values
-            data = {"length": 0, "travel_time": 0}
-        length = data.get("length", 0)  # in meters
-        travel_time = data.get("travel_time", 0)  # in seconds
-        total_distance += length
-        total_time += travel_time
-        distances.append(length)
-        times.append(travel_time)
-        cumulative_distances.append(total_distance)
-        cumulative_times.append(total_time)
-
-    # Assign to map_instance
-    map_instance.distances = distances
-    map_instance.times = times
-    map_instance.cumulative_distances = cumulative_distances
-    map_instance.cumulative_times = cumulative_times
-    map_instance.total_distance = total_distance
-    map_instance.total_time = total_time
+        Args:
+            message (str): The message to log.
+        """
+        self.info_log.configure(state="normal")
+        elapsed_since_start = format_time(time.time() - self.start_time)
+        self.info_log.insert(tk.END, f"{elapsed_since_start} - {message}\n")
+        self.info_log.configure(state="disabled")
+        self.info_log.see(tk.END)  # Auto-scroll to the end

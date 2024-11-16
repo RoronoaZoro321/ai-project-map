@@ -9,9 +9,10 @@
 :- dynamic mode/2.
 :- dynamic delayed_edge/2.  % delayed_edge(Node1, Node2)
 
-% Default Transportation Mode
-% mode(Mode, Speed in km/h)
-mode(car, 60).  % Speed in km/h
+% Transportation Modes and Their Speeds (in km/h)
+mode(car, 60).          % Speed for Car
+mode(walking, 5).       % Speed for Walking
+mode(motorcycle, 40).   % Speed for Motorcycle
 
 % Travel Time Calculation
 % travel_time(Distance, Mode, Time)

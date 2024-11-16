@@ -3,18 +3,32 @@
 import tkinter as tk
 from tkinter import messagebox
 from configparser import ConfigParser
+from tkinter import ttk  # Import ttk for styling
 
 from gui.components import Components
 from gui.visualization import Visualization
 from logic.prolog_interface import PrologInterface
 from logic.traversal import Traversal
 from map.map import Map
+from utils.utils import format_time  # Import the helper function
 
 import os
 import osmnx as ox  # Ensure osmnx is imported
 
 
 def main():
+    # Initialize Tkinter root
+    root = tk.Tk()
+    root.title("Shortest Path Finder")
+
+    # Apply ttk theme
+    style = ttk.Style()
+    style.theme_use("clam")  # You can choose 'alt', 'default', 'classic', etc.
+
+    # Initialize GUI components
+    components = Components(root)
+    visualization = Visualization(root)
+
     # Load configuration
     config = ConfigParser()
     config.read("config.ini")
@@ -24,16 +38,10 @@ def main():
     try:
         prolog_interface = PrologInterface(prolog_file_path)
     except Exception as e:
-        print(f"Failed to initialize Prolog: {e}")
+        messagebox.showerror(
+            "Prolog Initialization Error", f"Failed to initialize Prolog: {e}"
+        )
         return
-
-    # Set up the Tkinter GUI
-    root = tk.Tk()
-    root.title("Shortest Path Finder")
-
-    # Initialize GUI components
-    components = Components(root)
-    visualization = Visualization(root)
 
     # Initialize map_instance as None
     root.map_instance = None  # Will be set after user inputs
@@ -50,12 +58,18 @@ def main():
             end_lat = float(components.end_lat_entry.get())
             end_lon = float(components.end_lon_entry.get())
             algorithm = components.algorithm_var.get()
+            transportation_mode = components.transportation_mode_var.get()
 
             # Validate coordinates
             validate_coordinates(start_lat, start_lon, end_lat, end_lon)
 
-            # Create map and compute shortest path
-            new_map_instance = Map((start_lat, start_lon), (end_lat, end_lon))
+            # Get speed based on transportation mode
+            mode_speed = get_mode_speed(transportation_mode)
+
+            # Create map and compute shortest path with the selected speed
+            new_map_instance = Map(
+                (start_lat, start_lon), (end_lat, end_lon), speed_kph=mode_speed
+            )
             new_map_instance.prolog_interface = (
                 prolog_interface  # Assign Prolog interface
             )
@@ -112,6 +126,28 @@ def main():
             if not (-180 <= lon <= 180):
                 raise ValueError("Longitude must be between -180 and 180 degrees.")
 
+    def get_mode_speed(mode):
+        """
+        Retrieves the speed in km/h based on the selected transportation mode.
+
+        Args:
+            mode (str): Selected transportation mode.
+
+        Returns:
+            float: Speed in km/h.
+
+        Raises:
+            ValueError: If the mode is not recognized.
+        """
+        mode_speeds = {
+            "car": 60.0,  # km/h
+            "walking": 5.0,  # km/h
+            "motorcycle": 40.0,  # km/h
+        }
+        if mode not in mode_speeds:
+            raise ValueError(f"Unrecognized transportation mode: {mode}")
+        return mode_speeds[mode]
+
     def calculate_traversal_metrics(map_instance):
         """
         Calculates distances, times, cumulative distances, and cumulative times for the path.
@@ -164,9 +200,9 @@ def main():
         components.path_text.delete(1.0, tk.END)
         components.path_text.insert(tk.END, output)
 
-        # Update total time and distance labels
+        # Update total time and distance labels using format_time
         components.total_time_label.config(
-            text=f"Total Time: {map_instance.total_time:.2f} sec"
+            text=f"Total Time: {format_time(map_instance.total_time)}"
         )
         components.total_distance_label.config(
             text=f"Total Distance: {map_instance.total_distance:.2f} m"
@@ -233,9 +269,9 @@ def display_path(map_instance, components):
     components.path_text.delete(1.0, tk.END)
     components.path_text.insert(tk.END, output)
 
-    # Update total time and distance labels
+    # Update total time and distance labels using format_time
     components.total_time_label.config(
-        text=f"Total Time: {map_instance.total_time:.2f} sec"
+        text=f"Total Time: {format_time(map_instance.total_time)}"
     )
     components.total_distance_label.config(
         text=f"Total Distance: {map_instance.total_distance:.2f} m"
