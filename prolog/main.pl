@@ -1,21 +1,20 @@
 % main.pl
 
 % Include other Prolog files
-:- [facts].
 :- [algorithms].
 :- [utilities].
 
-% =========================
-% Main Predicate
-% =========================
+% Dynamic Declarations
+:- dynamic edge/3.  % edge(Node1, Node2, Weight)
+:- dynamic node/3.  % node(Name, Lat, Lon)
+:- dynamic mode/2.
 
-% find_route(StartNode, EndNode, Mode, Algorithm, Path, TotalDistance, TotalTime).
-% Finds the shortest path using the specified algorithm and calculates travel time.
+% Default Transportation Mode
+mode(car, 60).  % Speed in km/h
 
-find_route(Start, Goal, Mode, Algorithm, Path, Distance, Time) :-
-    % Ensure the mode is valid
-    mode(Mode, _),
-    % Find the shortest path using the specified algorithm
-    shortest_path(Start, Goal, Algorithm, Path, Distance),
-    % Calculate travel time
-    travel_time(Distance, Mode, Time).
+% Travel Time Calculation
+travel_time(Distance, Mode, Time) :-
+    mode(Mode, Speed),
+    Time is Distance / Speed.
+
+% Note: Since facts are being asserted from Python, no need to include facts.pl

@@ -1,10 +1,8 @@
 % algorithms.pl
 
-% Dynamic Declarations
-:- dynamic edge/3.
-:- dynamic node/3.
-
+% =========================
 % Shortest Path Finder
+% =========================
 
 % shortest_path(StartNode, EndNode, Algorithm, Path, TotalDistance).
 % Find the shortest path between StartNode and EndNode using the specified algorithm.
@@ -20,19 +18,25 @@ shortest_path(Start, Goal, Algorithm, Path, Distance) :-
         reverse(RevPath, Path)
     ).
 
+% =========================
 % Dijkstra's Algorithm
+% =========================
+
+% Comparator predicate for predsort/3
 compare_dist(<, [_, _, Dist1], [_, _, Dist2]) :- Dist1 < Dist2.
 compare_dist(=, [_, _, Dist1], [_, _, Dist2]) :- Dist1 =:= Dist2.
 compare_dist(>, [_, _, Dist1], [_, _, Dist2]) :- Dist1 > Dist2.
 
+% Dijkstra's helper predicate using predsort/3
 dijkstra([[Goal, Path, Dist] | _], Goal, Path, Dist).
 dijkstra([[CurrentNode, CurrentPath, CurrentDist] | Rest], Goal, Path, Dist) :-
     findall(
         [NextNode, [NextNode | CurrentPath], NewDist],
         (
-            edge(CurrentNode, NextNode, Weight),
+            edge(CurrentNode, NextNode, D, Delay),
             \+ member(NextNode, CurrentPath),
-            NewDist is CurrentDist + Weight
+            TotalEdgeDistance is D + Delay,
+            NewDist is CurrentDist + TotalEdgeDistance
         ),
         NextNodes
     ),
@@ -40,19 +44,27 @@ dijkstra([[CurrentNode, CurrentPath, CurrentDist] | Rest], Goal, Path, Dist) :-
     predsort(compare_dist, UpdatedQueue, SortedQueue),
     dijkstra(SortedQueue, Goal, Path, Dist).
 
+% =========================
 % A* Algorithm
+% =========================
+
+% Comparator predicate for predsort/3
 compare_f(<, [_, _, _, F1], [_, _, _, F2]) :- F1 < F2.
 compare_f(=, [_, _, _, F1], [_, _, _, F2]) :- F1 =:= F2.
 compare_f(>, [_, _, _, F1], [_, _, _, F2]) :- F1 > F2.
+
+% a_star(OpenList, GoalNode, Path, TotalCost).
+% Implements the A* search algorithm.
 
 a_star([[Goal, Path, G, _] | _], Goal, Path, G).
 a_star([[CurrentNode, CurrentPath, CurrentG, _] | Rest], Goal, Path, Distance) :-
     findall(
         [NextNode, [NextNode | CurrentPath], NewG, NewF],
         (
-            edge(CurrentNode, NextNode, Weight),
+            edge(CurrentNode, NextNode, D, Delay),
             \+ member(NextNode, CurrentPath),
-            NewG is CurrentG + Weight,
+            TotalEdgeDistance is D + Delay,
+            NewG is CurrentG + TotalEdgeDistance,
             heuristic(NextNode, Goal, H),
             NewF is NewG + H
         ),
