@@ -4,14 +4,13 @@ import tkinter as tk
 from tkinter import messagebox
 from pyswip import Prolog
 from map_visualization import MapVisualizer
-import math
 
 
 class MapNavigationApp:
     def __init__(self):
         # Initialize Prolog
         self.prolog = Prolog()
-        self.prolog.consult("../prolog/prolog_program.pl")
+        self.prolog.consult("../prolog/main.pl")
 
         # Initialize GUI
         self.root = tk.Tk()
@@ -41,29 +40,53 @@ class MapNavigationApp:
         # OptionMenu for selecting the mode of transportation
         tk.Label(self.root, text="Mode of Transport:").grid(row=2, column=0, sticky="e")
         self.mode_var = tk.StringVar(value="car")
-        modes = ["car", "walking", "motorcycle", "airplane"]
-        self.mode_menu = tk.OptionMenu(self.root, self.mode_var, *modes)
+        self.modes = ["car", "walking", "motorcycle", "airplane"]
+        self.mode_menu = tk.OptionMenu(self.root, self.mode_var, *self.modes)
         self.mode_menu.grid(row=2, column=1, padx=5, pady=5)
+
+        # OptionMenu for selecting the algorithm
+        tk.Label(self.root, text="Algorithm:").grid(row=3, column=0, sticky="e")
+        self.algorithm_var = tk.StringVar(value="dijkstra")
+        self.algorithms = ["dijkstra", "astar"]
+        self.algorithm_menu = tk.OptionMenu(
+            self.root, self.algorithm_var, *self.algorithms
+        )
+        self.algorithm_menu.grid(row=3, column=1, padx=5, pady=5)
+
+        # Adjust the row numbers for subsequent widgets
+        next_row = 4
 
         # Button to find the route
         self.find_button = tk.Button(
             self.root, text="Find Route", command=self.find_route
         )
-        self.find_button.grid(row=3, column=0, pady=10)
+        self.find_button.grid(row=next_row, column=0, pady=10)
 
         # Cancel button to stop the countdown
         self.cancel_button = tk.Button(
             self.root, text="Cancel", command=self.cancel_route
         )
-        self.cancel_button.grid(row=3, column=1, pady=10)
+        self.cancel_button.grid(row=next_row, column=1, pady=10)
 
         # Reset button to reset the graph
         self.reset_button = tk.Button(self.root, text="Reset", command=self.reset_graph)
-        self.reset_button.grid(row=3, column=2, pady=10)
+        self.reset_button.grid(row=next_row, column=2, pady=10)
+
+        next_row += 1
+
+        # Transportation Controller Button
+        self.transport_button = tk.Button(
+            self.root,
+            text="Transportation Controller",
+            command=self.open_transport_controller,
+        )
+        self.transport_button.grid(row=next_row, column=0, columnspan=3, pady=10)
+
+        next_row += 1
 
         # Frames for Controllers
         controllers_frame = tk.Frame(self.root)
-        controllers_frame.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
+        controllers_frame.grid(row=next_row, column=0, columnspan=3, padx=5, pady=5)
 
         # Obstacle Controller Frame
         obstacle_frame = tk.LabelFrame(controllers_frame, text="Obstacle Controller")
@@ -98,15 +121,104 @@ class MapNavigationApp:
         )
         self.add_edge_button.grid(row=3, column=0, columnspan=2, pady=5)
 
+        # Delay Controller Frame
+        delay_frame = tk.LabelFrame(controllers_frame, text="Delay Controller")
+        delay_frame.pack(side="left", padx=5, pady=5)
+
+        tk.Label(delay_frame, text="Node 1:").grid(row=0, column=0, sticky="e")
+        self.delay_node1_entry = tk.Entry(delay_frame)
+        self.delay_node1_entry.grid(row=0, column=1, padx=5, pady=5)
+        tk.Label(delay_frame, text="Node 2:").grid(row=1, column=0, sticky="e")
+        self.delay_node2_entry = tk.Entry(delay_frame)
+        self.delay_node2_entry.grid(row=1, column=1, padx=5, pady=5)
+        tk.Label(delay_frame, text="Delay (km):").grid(row=2, column=0, sticky="e")
+        self.delay_value_entry = tk.Entry(delay_frame)
+        self.delay_value_entry.grid(row=2, column=1, padx=5, pady=5)
+        self.add_delay_button = tk.Button(
+            delay_frame, text="Add Delay", command=self.add_delay
+        )
+        self.add_delay_button.grid(row=3, column=0, columnspan=2, pady=5)
+        self.remove_delay_button = tk.Button(
+            delay_frame, text="Remove Delay", command=self.remove_delay
+        )
+        self.remove_delay_button.grid(row=4, column=0, columnspan=2, pady=5)
+
+        next_row += 1
+
         # Label to display route information
         self.info_label = tk.Label(self.root, text="", justify="left")
-        self.info_label.grid(row=6, column=0, columnspan=3, padx=10, pady=10)
+        self.info_label.grid(row=next_row, column=0, columnspan=3, padx=10, pady=10)
+
+        next_row += 1
 
         # Label to display the countdown timer
         self.timer_label = tk.Label(self.root, text="", font=("Helvetica", 16))
-        self.timer_label.grid(row=7, column=0, columnspan=3, padx=10, pady=10)
+        self.timer_label.grid(row=next_row, column=0, columnspan=3, padx=10, pady=10)
 
-        # Map visualization is handled by MapVisualizer (row=8)
+        # Map visualization is handled by MapVisualizer (row=next_row+1)
+
+    def open_transport_controller(self):
+        # Create a new window for the transportation controller
+        self.transport_window = tk.Toplevel(self.root)
+        self.transport_window.title("Transportation Controller")
+
+        # Fetch current modes from Prolog
+        modes = self.get_modes_from_prolog()
+
+        self.transport_entries = {}
+
+        for idx, mode in enumerate(modes):
+            mode_name = mode["Mode"]
+            speed = mode["Speed"]
+
+            tk.Label(self.transport_window, text=f"Mode: {mode_name}").grid(
+                row=idx, column=0, padx=5, pady=5
+            )
+
+            tk.Label(self.transport_window, text="Speed (km/h):").grid(
+                row=idx, column=1, sticky="e"
+            )
+            speed_entry = tk.Entry(self.transport_window)
+            speed_entry.insert(0, str(speed))
+            speed_entry.grid(row=idx, column=2, padx=5, pady=5)
+
+            self.transport_entries[mode_name] = {"speed": speed_entry}
+
+        # Update button
+        update_button = tk.Button(
+            self.transport_window,
+            text="Update Modes",
+            command=self.update_transport_modes,
+        )
+        update_button.grid(row=len(modes), column=0, columnspan=3, pady=10)
+
+    def get_modes_from_prolog(self):
+        # Retrieve the current modes from Prolog
+        modes = []
+        query = "mode(Mode, Speed)"
+        for result in self.prolog.query(query):
+            modes.append({"Mode": str(result["Mode"]), "Speed": result["Speed"]})
+        return modes
+
+    def update_transport_modes(self):
+        # Update modes in Prolog based on user input
+        for mode_name, entries in self.transport_entries.items():
+            speed_str = entries["speed"].get()
+            try:
+                speed = float(speed_str)
+                # Remove old mode
+                query_remove = f"retractall(mode({mode_name}, _))"
+                list(self.prolog.query(query_remove))
+                # Add updated mode
+                query_add = f"assert(mode({mode_name}, {speed}))"
+                list(self.prolog.query(query_add))
+            except ValueError:
+                messagebox.showwarning(
+                    "Input Error", f"Invalid input for mode {mode_name}."
+                )
+                return
+        messagebox.showinfo("Success", "Transportation modes updated successfully.")
+        self.transport_window.destroy()
 
     def find_route(self, start_node=None):
         # Cancel any existing countdown timer
@@ -121,17 +233,21 @@ class MapNavigationApp:
 
         goal = self.goal_entry.get().strip()
         mode = self.mode_var.get()
+        algorithm = self.algorithm_var.get()
 
         if not start or not goal:
             self.info_label.config(text="Please enter both start and goal nodes.")
             return
 
-        # Ensure nodes are lowercase to match Prolog atoms
+        # Ensure nodes and algorithm are lowercase to match Prolog atoms
         start = start.lower()
         goal = goal.lower()
+        algorithm = algorithm.lower()
 
-        # Construct the Prolog query
-        query = f"find_route({start}, {goal}, {mode}, Path, Distance, Time)"
+        # Construct the Prolog query with the algorithm parameter
+        query = (
+            f"find_route({start}, {goal}, {mode}, {algorithm}, Path, Distance, Time)"
+        )
         try:
             result = list(self.prolog.query(query))
             if result:
@@ -204,12 +320,13 @@ class MapNavigationApp:
             self.timer_label.config(text="")
             self.map_visualizer.clear_map()
 
-    def find_edge_index_in_path(self, path, node1, node2):
-        edge = (node1, node2)
-        for index, (n1, n2) in enumerate(zip(path, path[1:])):
-            if (n1 == node1 and n2 == node2) or (n1 == node2 and n2 == node1):
-                return index
-        return None
+    def display_route_info(self, path, distance, time_in_minutes):
+        info = (
+            f"Path: {' -> '.join(path)}\n"
+            f"Total Distance: {distance} km\n"
+            f"Estimated Time: {time_in_minutes:.2f} minutes"
+        )
+        self.info_label.config(text=info)
 
     def calculate_traversal_times(self, path, mode):
         traversal_times = []
@@ -239,8 +356,8 @@ class MapNavigationApp:
         return traversal_times
 
     def get_mode_speed(self, mode):
-        # Query Prolog for mode_speed(Mode, Speed)
-        query = f"mode_speed({mode}, Speed)"
+        # Query Prolog for mode(Mode, Speed)
+        query = f"mode({mode}, Speed)"
         try:
             result = list(self.prolog.query(query))
             if result:
@@ -253,70 +370,14 @@ class MapNavigationApp:
             return None
 
     def get_edge_distances(self):
-        # Build a dictionary of edge distances
         edge_distances = {}
-        query = "edge(Node1, Node2, Distance)"
+        query = "edge(Node1, Node2, Distance, Delay)"
         for result in self.prolog.query(query):
             node1 = str(result["Node1"])
             node2 = str(result["Node2"])
-            distance = result["Distance"]
+            distance = result["Distance"] + result["Delay"]
             edge_distances[(node1, node2)] = distance
         return edge_distances
-
-    def display_route_info(self, path, distance, time_in_minutes):
-        info = f"Path: {' -> '.join(path)}\nTotal Distance: {distance} km\nEstimated Time: {time_in_minutes:.2f} minutes"
-        self.info_label.config(text=info)
-
-    def start_countdown(self, time_in_minutes):
-        # Convert minutes to seconds
-        total_seconds = int(time_in_minutes * 60)
-        self.update_timer(total_seconds)
-
-    def update_timer(self, remaining_seconds):
-        if remaining_seconds >= 0:
-            mins, secs = divmod(remaining_seconds, 60)
-            timer_text = f"Time Remaining: {mins:02d}:{secs:02d}"
-            self.timer_label.config(text=timer_text)
-            self.total_remaining_time = remaining_seconds
-            # Schedule the next update after 1 second
-            self.countdown_timer = self.root.after(
-                1000, self.update_timer, remaining_seconds - 1
-            )
-        else:
-            self.timer_label.config(text="Completed!")
-            self.current_position = (
-                None  # Reset current position when traversal is complete
-            )
-
-    def cancel_route(self):
-        # Cancel any existing countdown timer
-        if self.countdown_timer:
-            self.root.after_cancel(self.countdown_timer)
-            self.countdown_timer = None
-        # Clear the information labels
-        self.info_label.config(text="Route canceled.")
-        self.timer_label.config(text="")
-        # Clear the map visualization
-        self.map_visualizer.clear_map()
-        self.current_position = None
-
-    def reset_graph(self):
-        # Cancel any existing countdown timer
-        if self.countdown_timer:
-            self.root.after_cancel(self.countdown_timer)
-            self.countdown_timer = None
-        # Reset the Prolog graph and speeds
-        list(self.prolog.query("reset_all"))
-        # Clear the map visualization
-        self.map_visualizer.clear_map()
-        # Clear information labels
-        self.info_label.config(text="Graph has been reset to initial state.")
-        self.timer_label.config(text="")
-        self.current_position = None
-
-    def update_speed(self):
-        # Not used in the current implementation
-        pass
 
     def remove_edge(self):
         node1 = self.obstacle_node1_entry.get().strip().lower()
@@ -418,16 +479,134 @@ class MapNavigationApp:
         except Exception as e:
             self.info_label.config(text=f"An error occurred: {e}")
 
+    def add_delay(self):
+        node1 = self.delay_node1_entry.get().strip().lower()
+        node2 = self.delay_node2_entry.get().strip().lower()
+        delay_str = self.delay_value_entry.get().strip()
+
+        if not node1 or not node2 or not delay_str:
+            messagebox.showwarning(
+                "Input Error", "Please enter both nodes and the delay value."
+            )
+            return
+
+        try:
+            delay = float(delay_str)
+            if delay < 0:
+                raise ValueError("Delay must be non-negative.")
+        except ValueError as e:
+            messagebox.showwarning("Input Error", f"Invalid delay value: {e}")
+            return
+
+        # Construct the Prolog query
+        query = f"add_delay({node1}, {node2}, {delay})"
+        try:
+            result = list(self.prolog.query(query))
+            if result:
+                # Delay was successfully added
+                # Update the graph edges from Prolog
+                edges = self.get_edges_from_prolog()
+                self.map_visualizer.update_graph_edges(edges)
+                # Inform the user
+                self.info_label.config(
+                    text=f"Delay of {delay} km added between {node1} and {node2}."
+                )
+                # Recalculate the route
+                self.find_route()
+            else:
+                # Edge does not exist
+                self.info_label.config(
+                    text="No edge exists between the specified nodes."
+                )
+        except Exception as e:
+            self.info_label.config(text=f"An error occurred: {e}")
+
+    def remove_delay(self):
+        node1 = self.delay_node1_entry.get().strip().lower()
+        node2 = self.delay_node2_entry.get().strip().lower()
+
+        if not node1 or not node2:
+            messagebox.showwarning(
+                "Input Error", "Please enter both nodes to remove a delay."
+            )
+            return
+
+        # Construct the Prolog query
+        query = f"remove_delay({node1}, {node2})"
+        try:
+            result = list(self.prolog.query(query))
+            if result:
+                # Delay was successfully removed
+                # Update the graph edges from Prolog
+                edges = self.get_edges_from_prolog()
+                self.map_visualizer.update_graph_edges(edges)
+                # Inform the user
+                self.info_label.config(
+                    text=f"Delay removed between {node1} and {node2}."
+                )
+                # Recalculate the route
+                self.find_route()
+            else:
+                # Edge does not exist or no delay was present
+                self.info_label.config(
+                    text="No delay exists between the specified nodes."
+                )
+        except Exception as e:
+            self.info_label.config(text=f"An error occurred: {e}")
+
     def get_edges_from_prolog(self):
-        # Retrieve the current edges from Prolog
         edges = []
-        query = "edge(Node1, Node2, Distance)"
+        query = "edge(Node1, Node2, Distance, Delay)"
         for result in self.prolog.query(query):
             node1 = str(result["Node1"])
             node2 = str(result["Node2"])
-            distance = result["Distance"]
+            distance = result["Distance"] + result["Delay"]
             edges.append((node1, node2, distance))
         return edges
+
+    def cancel_route(self):
+        if self.countdown_timer:
+            self.root.after_cancel(self.countdown_timer)
+            self.countdown_timer = None
+        self.info_label.config(text="Route canceled.")
+        self.timer_label.config(text="")
+        self.map_visualizer.clear_map()
+        self.current_position = None
+
+    def reset_graph(self):
+        if self.countdown_timer:
+            self.root.after_cancel(self.countdown_timer)
+            self.countdown_timer = None
+        list(self.prolog.query("reset_all"))
+        self.map_visualizer.clear_map()
+        self.info_label.config(text="Graph has been reset to initial state.")
+        self.timer_label.config(text="")
+        self.current_position = None
+
+    def start_countdown(self, time_in_minutes):
+        total_seconds = int(time_in_minutes * 60)
+        self.update_timer(total_seconds)
+
+    def update_timer(self, remaining_seconds):
+        if remaining_seconds >= 0:
+            mins, secs = divmod(remaining_seconds, 60)
+            timer_text = f"Time Remaining: {mins:02d}:{secs:02d}"
+            self.timer_label.config(text=timer_text)
+            self.total_remaining_time = remaining_seconds
+            self.countdown_timer = self.root.after(
+                1000, self.update_timer, remaining_seconds - 1
+            )
+        else:
+            self.timer_label.config(text="Completed!")
+            self.current_position = (
+                None  # Reset current position when traversal is complete
+            )
+
+    def find_edge_index_in_path(self, path, node1, node2):
+        for index, (n1, n2) in enumerate(zip(path, path[1:])):
+            if (n1 == node1 and n2 == node2) or (n1 == node2 and n2 == node1):
+                return index
+        return None
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -435,7 +614,12 @@ class MapNavigationApp:
 
     def on_closing(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            # Cancel any existing countdown timer
             if self.countdown_timer:
                 self.root.after_cancel(self.countdown_timer)
             self.root.destroy()
+
+
+# To run the application, ensure that you have an entry point like this:
+if __name__ == "__main__":
+    app = MapNavigationApp()
+    app.run()
