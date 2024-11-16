@@ -1,10 +1,5 @@
 % main.pl
-%
-% This is the main Prolog file that includes other Prolog files and sets up dynamic predicates.
-% It defines dynamic predicates for nodes, edges, transportation modes, and delayed edges.
-% It also includes the algorithms for shortest path computation and utility predicates.
 
-% Include other Prolog files
 :- [algorithms].
 :- [utilities].
 

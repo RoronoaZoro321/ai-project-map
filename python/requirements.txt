@@ -1,7 +1,0 @@
-pyswip
-tk
-networkx
-matplotlib
-osmnx
-folium
-geopy
