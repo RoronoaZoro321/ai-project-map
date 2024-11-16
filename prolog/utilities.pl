@@ -7,14 +7,6 @@
    as heuristic functions for the A* algorithm. It includes calculations for
    estimating the distance between nodes using the Haversine formula.
 
-   Author:
-   -------
-   [Your Name or Organization]
-
-   Date:
-   -----
-   [Date of Creation or Last Modification]
-
    =============================================================================
 */
 
