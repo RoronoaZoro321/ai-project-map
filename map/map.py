@@ -36,6 +36,7 @@ class Map:
         self.delay_probability = 0.0
         self.original_edges = {}
         self.processed_edges = set()  # Set to track edges already evaluated for delays
+        self.delayed_edges = []  # List of edges with delays
 
     def __str__(self):
         return f"""

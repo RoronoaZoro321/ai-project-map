@@ -1,6 +1,6 @@
 # gui/visualization.py
 
-import tkinter as tk
+import tkinter as tk  # Ensure tkinter is imported
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import osmnx as ox
@@ -10,13 +10,13 @@ class Visualization:
     def __init__(self, parent):
         self.parent = parent
         self.canvas = None
-        self.ax = None  # Initialize ax as None
+        self.ax = None
         self.line = None
         self.point_plot = None
         self.x_data = []
         self.y_data = []
         self.segment_colors = []
-        self.delay_label_added = False  # Initialize the flag
+        self.delay_label_added = False
 
     def setup_visualization(self, map_instance):
         """
@@ -24,7 +24,7 @@ class Visualization:
         """
         # Set up the figure and axis
         fig = plt.Figure(figsize=(8, 8))
-        self.ax = fig.add_subplot(111)  # Assign ax as an instance variable
+        self.ax = fig.add_subplot(111)
 
         # Clear previous canvas if any
         if self.canvas:
@@ -85,8 +85,8 @@ class Visualization:
         self.y_data = [point[0] for point in route_latlng]
 
         # Variables to track traversal progress
-        self.current_index = 0  # Index in the route
-        self.elapsed_time = 0  # Total elapsed time
+        self.current_index = 0
+        self.elapsed_time = 0
 
         # Variables to store colors for each segment
         self.segment_colors = ["purple"] * (len(map_instance.route) - 1)
@@ -99,3 +99,12 @@ class Visualization:
         map_instance.original_edges = {}
         for u, v, data in map_instance.G.edges(data=True):
             map_instance.original_edges[(u, v)] = data
+
+    def update_visualization(self, x, y, color):
+        """
+        Updates the traversal marker and path.
+        """
+        self.point_plot.set_data(x, y)
+        self.line.set_data(x, y)
+        self.line.set_color(color)
+        self.canvas.draw()

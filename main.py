@@ -222,7 +222,7 @@ def main():
 
     def start_traversal():
         """
-        Starts the traversal with random delays based on the specified probability.
+        Starts the traversal with delays assigned by Prolog based on probability.
         """
         try:
             map_instance = root.map_instance
@@ -235,15 +235,14 @@ def main():
                 float(components.delay_prob_entry.get()) / 100.0
             )  # Convert percentage to decimal
 
-            # Store the delay probability in map_instance
-            map_instance.delay_probability = delay_probability
-
             # Set up traversal
-            traversal = Traversal(map_instance, visualization, components, root)
+            traversal = Traversal(
+                map_instance, visualization, components, root, prolog_interface
+            )
             root.traversal = traversal  # Store traversal in root for access in cancel
 
             # Start the traversal
-            traversal.start()
+            traversal.start(delay_probability)  # Pass delay_probability
 
         except Exception as e:
             messagebox.showerror("Error", str(e))

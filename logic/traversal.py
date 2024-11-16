@@ -1,21 +1,21 @@
 # logic/traversal.py
 
-import time
-import random
 import tkinter as tk
-from utils.utils import format_time  # Import the helper function
+import time
+from utils.utils import format_time
 
 
 class Traversal:
-    def __init__(self, map_instance, visualization, components, root):
+    def __init__(self, map_instance, visualization, components, root, prolog_interface):
         self.map = map_instance
         self.visualization = visualization
         self.components = components
         self.root = root
+        self.prolog_interface = prolog_interface
         self.cancelled = False
-        self.delay_label_added = False  # Flag to track legend entry for delays
+        self.delay_label_added = False
 
-    def start(self):
+    def start(self, delay_probability):
         """
         Starts the traversal process.
         """
@@ -24,8 +24,17 @@ class Traversal:
             text="Traversal started.", style="Info.TLabel"
         )
         self.components.cancel_traversal_button.config(state="normal")
-        self._traverse()  # Initialize start_time and traversal parameters
-        self.log_info("Traversal started.")  # Now start_time is defined
+
+        # Assign delays via Prolog
+        delayed_edges = self.prolog_interface.assign_delays(
+            self.map.route, delay_probability
+        )
+        self.map.delayed_edges = delayed_edges  # Store in map_instance
+
+        # Initialize traversal parameters
+        self._traverse()
+
+        self.log_info("Traversal started.")
 
     def _traverse(self):
         """
@@ -109,74 +118,72 @@ class Traversal:
         # Log current traversal
         self.log_info(f"Traversing from Node {current_node} to Node {next_node}.")
 
-        # Check if this edge has already been processed for delay
-        if edge not in map_instance.processed_edges:
+        # Check if this edge has a delay
+        if (
+            edge in map_instance.delayed_edges
+            and edge not in map_instance.processed_edges
+        ):
             # Mark this edge as processed
             map_instance.processed_edges.add(edge)
 
-            # Decide whether to apply a delay based on probability
-            delay_probability = map_instance.delay_probability
-            delay_occurred = random.random() < delay_probability
+            # Define delay parameters
+            delay_time = 10  # seconds
+            delay_distance = 0  # meters (modify if delays affect distance)
 
-            if delay_occurred:
-                # Define delay parameters
-                delay_time = 10  # seconds
-                delay_distance = 0  # meters (modify if delays affect distance)
+            # Apply delay effects
+            map_instance.total_time += delay_time
+            map_instance.total_distance += delay_distance
 
-                # Apply delay effects
-                map_instance.total_time += delay_time
-                map_instance.total_distance += delay_distance
+            # Update the traversal metrics to include the delay
+            # Add delay_time to all cumulative_times from the current index onwards
+            for i in range(idx + 1, len(map_instance.cumulative_times)):
+                map_instance.cumulative_times[i] += delay_time
 
-                # Update the traversal metrics to include the delay
-                # Add delay_time to all cumulative_times from the current index onwards
-                for i in range(idx + 1, len(map_instance.cumulative_times)):
-                    map_instance.cumulative_times[i] += delay_time
+            # Update the GUI labels to reflect the new total_time and total_distance
+            self.components.total_time_label.config(
+                text=f"Total Time: {format_time(map_instance.total_time)}"
+            )
+            self.components.total_distance_label.config(
+                text=f"Total Distance: {map_instance.total_distance:.2f} m"
+            )
 
-                # Update the GUI labels to reflect the new total_time and total_distance
-                self.components.total_time_label.config(
-                    text=f"Total Time: {format_time(map_instance.total_time)}"
-                )
-                self.components.total_distance_label.config(
-                    text=f"Total Distance: {map_instance.total_distance:.2f} m"
-                )
+            # Update the status label
+            self.components.status_label.config(
+                text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}.",
+                style="Error.TLabel",
+            )
+            self.log_info(
+                f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}."
+            )
 
-                # Update the status label
-                self.components.status_label.config(
-                    text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}.",
-                    style="Error.TLabel",
-                )
-                self.log_info(
-                    f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}."
-                )
+            # Update the segment color to yellow
+            self.segment_colors[idx] = "yellow"
 
-                # Update the segment color to yellow
-                self.segment_colors[idx] = "yellow"
+            # Optionally, visualize the delay on the map
+            self.visualization.ax.plot(
+                [
+                    self.visualization.x_data[idx],
+                    self.visualization.x_data[idx + 1],
+                ],
+                [
+                    self.visualization.y_data[idx],
+                    self.visualization.y_data[idx + 1],
+                ],
+                color="yellow",  # Changed from "orange" to "yellow"
+                linewidth=3,
+                label=(
+                    "Delayed Segment"
+                    if not self.visualization.delay_label_added
+                    else ""
+                ),
+            )
 
-                # Optionally, visualize the delay on the map
-                self.visualization.ax.plot(
-                    [
-                        self.visualization.x_data[idx],
-                        self.visualization.x_data[idx + 1],
-                    ],
-                    [
-                        self.visualization.y_data[idx],
-                        self.visualization.y_data[idx + 1],
-                    ],
-                    color="yellow",  # Changed from "orange" to "yellow"
-                    linewidth=3,
-                    label=(
-                        "Delayed Segment"
-                        if not self.visualization.delay_label_added
-                        else ""
-                    ),
-                )
+            # Add legend entry only once
+            if not self.visualization.delay_label_added:
+                self.visualization.ax.legend()
+                self.visualization.delay_label_added = True
 
-                # Add legend entry only once
-                if not self.visualization.delay_label_added:
-                    self.visualization.ax.legend()
-                    self.visualization.delay_label_added = True
-
-                self.visualization.canvas.draw()
+            self.visualization.canvas.draw()
 
         # Update the marker position based on elapsed time and traversal metrics
         if self.current_index < len(cumulative_times) - 1:

@@ -38,7 +38,7 @@ class PrologInterface:
         for u, v, data in G.edges(data=True):
             weight = data.get("length", 1)
             edge_facts.append(f"edge({u}, {v}, {weight})")
-            edge_facts.append(f"edge({v}, {u}, {weight})")  # Assuming undirected graph
+            edge_facts.append(f"edge({v}, {u}, {weight})")
         for fact in edge_facts:
             self.prolog.assertz(fact)
 
@@ -54,3 +54,27 @@ class PrologInterface:
             return path, distance
         else:
             raise Exception("No path found")
+
+    def assign_delays(self, path, delay_probability):
+        """
+        Assigns delays to edges in the path based on the delay probability.
+
+        Args:
+            path (list): List of node IDs representing the path.
+            delay_probability (float): Probability of delay occurring on each edge.
+
+        Returns:
+            list of tuples: List of edges (u, v) that have delays.
+        """
+        # Convert path list to Prolog list syntax
+        path_str = "[" + ", ".join(map(str, path)) + "]"
+        # Prolog query: assign_delays(Path, DelayProbability, DelayedEdges)
+        query = f"assign_delays({path_str}, {delay_probability}, DelayedEdges)."
+        result = list(self.prolog.query(query))
+        if result:
+            delayed_edges = result[0]["DelayedEdges"]
+            # Each delayed_edge is a list [U, V]
+            delayed_edges_tuples = [tuple(edge) for edge in delayed_edges]
+            return delayed_edges_tuples
+        else:
+            return []
