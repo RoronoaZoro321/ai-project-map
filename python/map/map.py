@@ -114,8 +114,6 @@ class Map:
         plt.tight_layout()
         plt.show()
 
-
-
     def get_all_edges(self):
         edges = [(u, v) for u, v, k in self.G.edges(keys=True)]
         for u, v in edges:

@@ -3,13 +3,15 @@ from geocoding import Geocoder
 
 def create_map_with_geocoding():
     # Usage
-    start_address = "Lotus Srinakarinda"
-    end_address = "Jas Urban Srinakarin"
+    start_address = "Soi Mu Ban Prem Ruethai 11"
+    end_address = "Sridan 3/3 Alley"
     # Create Geocoder instance
     geocoder = Geocoder()
     # Geocode the start and end addresses
     start_location = geocoder.geocode(start_address)
     end_location = geocoder.geocode(end_address)
+    print("start_location:", start_location)
+    print("end_location:", end_location)
     # Create Map instance
     map = Map(start_location, end_location)
     return map
@@ -61,13 +63,14 @@ def get_fact(map):
     get_edge(map)
     get_node(map)
     get_weight(map)
-
 def main():
     # map = create_map_with_geocoding()
     map = create_map()
     print(map)
     display_map(map)
-    # get_fact(map)
+    get_fact(map)
 
 if __name__ == "__main__":
     main()
+
+
