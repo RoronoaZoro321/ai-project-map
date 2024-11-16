@@ -24,14 +24,14 @@ class Traversal:
             text="Traversal started.", style="Info.TLabel"
         )
         self.components.cancel_traversal_button.config(state="normal")
-        self.log_info("Traversal started.")
-        self._traverse()
+        self._traverse()  # Initialize start_time and traversal parameters
+        self.log_info("Traversal started.")  # Now start_time is defined
 
     def _traverse(self):
         """
         Initializes traversal metrics and schedules the first update.
         """
-        self.start_time = time.time()
+        self.start_time = time.time()  # Initialize start_time here
         self.current_index = 0
         self.elapsed_time = 0
         self.segment_colors = ["purple"] * (len(self.map.route) - 1)
@@ -120,7 +120,7 @@ class Traversal:
 
             if delay_occurred:
                 # Define delay parameters
-                delay_time = 60  # seconds
+                delay_time = 10  # seconds
                 delay_distance = 0  # meters (modify if delays affect distance)
 
                 # Apply delay effects
@@ -164,13 +164,17 @@ class Traversal:
                     ],
                     color="yellow",  # Changed from "orange" to "yellow"
                     linewidth=3,
-                    label="Delayed Segment" if not self.delay_label_added else "",
+                    label=(
+                        "Delayed Segment"
+                        if not self.visualization.delay_label_added
+                        else ""
+                    ),
                 )
 
                 # Add legend entry only once
-                if not self.delay_label_added:
+                if not self.visualization.delay_label_added:
                     self.visualization.ax.legend()
-                    self.delay_label_added = True
+                    self.visualization.delay_label_added = True
 
                 self.visualization.canvas.draw()
 
@@ -252,8 +256,14 @@ class Traversal:
         Args:
             message (str): The message to log.
         """
-        self.info_log.configure(state="normal")
-        elapsed_since_start = format_time(time.time() - self.start_time)
-        self.info_log.insert(tk.END, f"{elapsed_since_start} - {message}\n")
-        self.info_log.configure(state="disabled")
-        self.info_log.see(tk.END)  # Auto-scroll to the end
+        self.components.info_log.configure(state="normal")
+        if hasattr(self, "start_time") and self.start_time is not None:
+            elapsed_since_start = format_time(time.time() - self.start_time)
+            log_message = f"{elapsed_since_start} - {message}\n"
+        else:
+            log_message = (
+                f"00:00 - {message}\n"  # Default time if start_time is not set
+            )
+        self.components.info_log.insert(tk.END, log_message)
+        self.components.info_log.configure(state="disabled")
+        self.components.info_log.see(tk.END)  # Auto-scroll to the end

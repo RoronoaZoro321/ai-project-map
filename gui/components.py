@@ -5,34 +5,44 @@ from tkinter import ttk
 
 
 class Components:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, parent):
+        self.parent = parent
         self.create_widgets()
 
     def create_widgets(self):
         """
         Creates and places all GUI components within organized frames and applies styles.
         """
-        # Define Frames
-        self.input_frame = ttk.Frame(self.root, padding="10 10 10 10")
-        self.input_frame.grid(row=0, column=0, sticky="nsew")
+        # Define Frames within the right_frame
+        self.input_frame = ttk.LabelFrame(
+            self.parent, text="Inputs", padding="10 10 10 10"
+        )
+        self.input_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
-        self.control_frame = ttk.Frame(self.root, padding="10 10 10 10")
-        self.control_frame.grid(row=1, column=0, sticky="nsew")
+        self.control_frame = ttk.LabelFrame(
+            self.parent, text="Controls", padding="10 10 10 10"
+        )
+        self.control_frame.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
-        self.display_frame = ttk.Frame(self.root, padding="10 10 10 10")
-        self.display_frame.grid(row=2, column=0, sticky="nsew")
+        self.display_frame = ttk.LabelFrame(
+            self.parent, text="Path Display", padding="10 10 10 10"
+        )
+        self.display_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
 
-        self.metrics_frame = ttk.Frame(self.root, padding="10 10 10 10")
-        self.metrics_frame.grid(row=3, column=0, sticky="nsew")
+        self.metrics_frame = ttk.LabelFrame(
+            self.parent, text="Metrics", padding="10 10 10 10"
+        )
+        self.metrics_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
 
-        self.status_frame = ttk.Frame(self.root, padding="10 10 10 10")
-        self.status_frame.grid(row=4, column=0, sticky="nsew")
+        self.status_frame = ttk.LabelFrame(
+            self.parent, text="Status", padding="10 10 10 10"
+        )
+        self.status_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
 
-        # Configure grid weights
-        self.root.columnconfigure(0, weight=1)
+        # Configure grid weights for responsiveness
+        self.parent.columnconfigure(0, weight=1)
         for i in range(5):
-            self.root.rowconfigure(i, weight=1)
+            self.parent.rowconfigure(i, weight=1)
 
         # Define Styles
         style = ttk.Style()
@@ -64,53 +74,53 @@ class Components:
         algorithm_label = ttk.Label(
             self.input_frame, text="Pathfinding Algorithm:", style="TLabel"
         )
-        algorithm_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        algorithm_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
         algorithm_dropdown = ttk.OptionMenu(
             self.input_frame, self.algorithm_var, "dijkstra", "dijkstra", "astar"
         )
-        algorithm_dropdown.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        algorithm_dropdown.grid(row=1, column=1, padx=5, pady=5, sticky="w")
 
         # Start location entries
         start_lat_label = ttk.Label(
             self.input_frame, text="Start Latitude:", style="TLabel"
         )
-        start_lat_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        start_lat_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.start_lat_entry = ttk.Entry(self.input_frame, width=20)
-        self.start_lat_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.start_lat_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
         self.start_lat_entry.insert(0, "13.621244148739478")  # Default value
 
         start_lon_label = ttk.Label(
             self.input_frame, text="Start Longitude:", style="TLabel"
         )
-        start_lon_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        start_lon_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.start_lon_entry = ttk.Entry(self.input_frame, width=20)
-        self.start_lon_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        self.start_lon_entry.grid(row=3, column=1, padx=5, pady=5, sticky="w")
         self.start_lon_entry.insert(0, "100.61953164076222")  # Default value
 
         # End location entries
         end_lat_label = ttk.Label(
             self.input_frame, text="End Latitude:", style="TLabel"
         )
-        end_lat_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        end_lat_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
         self.end_lat_entry = ttk.Entry(self.input_frame, width=20)
-        self.end_lat_entry.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        self.end_lat_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
         self.end_lat_entry.insert(0, "13.626794128718828")  # Default value
 
         end_lon_label = ttk.Label(
             self.input_frame, text="End Longitude:", style="TLabel"
         )
-        end_lon_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        end_lon_label.grid(row=5, column=0, padx=5, pady=5, sticky="w")
         self.end_lon_entry = ttk.Entry(self.input_frame, width=20)
-        self.end_lon_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+        self.end_lon_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
         self.end_lon_entry.insert(0, "100.6149335353964")  # Default value
 
         # Delay probability input
         delay_prob_label = ttk.Label(
             self.input_frame, text="Delay Probability (%):", style="TLabel"
         )
-        delay_prob_label.grid(row=5, column=0, padx=5, pady=5, sticky="w")
+        delay_prob_label.grid(row=6, column=0, padx=5, pady=5, sticky="w")
         self.delay_prob_entry = ttk.Entry(self.input_frame, width=20)
-        self.delay_prob_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        self.delay_prob_entry.grid(row=6, column=1, padx=5, pady=5, sticky="w")
         self.delay_prob_entry.insert(0, "10")  # Default to 10%
 
         # Control Frame Widgets
@@ -118,19 +128,19 @@ class Components:
         self.compute_button = ttk.Button(
             self.control_frame, text="Compute Shortest Path"
         )
-        self.compute_button.grid(row=0, column=0, padx=5, pady=5)
+        self.compute_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
         # Start traversal button
         self.start_traversal_button = ttk.Button(
             self.control_frame, text="Start Traversal"
         )
-        self.start_traversal_button.grid(row=0, column=1, padx=5, pady=5)
+        self.start_traversal_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Cancel traversal button
         self.cancel_traversal_button = ttk.Button(
             self.control_frame, text="Cancel Traversal", state="disabled"
         )
-        self.cancel_traversal_button.grid(row=0, column=2, padx=5, pady=5)
+        self.cancel_traversal_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
         # Display Frame Widgets
         # Path display
@@ -139,9 +149,9 @@ class Components:
         )
         path_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.path_text = tk.Text(
-            self.display_frame, height=10, width=80, font=("Arial", 10)
+            self.display_frame, height=10, width=50, font=("Arial", 10)
         )
-        self.path_text.grid(row=1, column=0, padx=5, pady=5)
+        self.path_text.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
         # Metrics Frame Widgets
         # Total time label
@@ -183,14 +193,14 @@ class Components:
         self.info_log = tk.Text(
             self.status_frame,
             height=10,
-            width=80,
+            width=50,
             state="disabled",
             font=("Arial", 10),
-            background="#f0f0f0",
+            background="#000000",
             relief="sunken",
             borderwidth=2,
         )
-        self.info_log.grid(row=2, column=0, padx=5, pady=5)
+        self.info_log.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
 
         # Configure column weights within frames for responsive design
         for frame in [
@@ -203,4 +213,7 @@ class Components:
             frame.columnconfigure(0, weight=1)
             frame.columnconfigure(1, weight=1)
             frame.columnconfigure(2, weight=1)
-            frame.columnconfigure(3, weight=1)
+
+        # Optionally, configure row weights if needed
+        self.display_frame.rowconfigure(1, weight=1)
+        self.status_frame.rowconfigure(2, weight=1)

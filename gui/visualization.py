@@ -1,11 +1,14 @@
+# gui/visualization.py
+
+import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import osmnx as ox
 
 
 class Visualization:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, parent):
+        self.parent = parent
         self.canvas = None
         self.ax = None  # Initialize ax as None
         self.line = None
@@ -13,6 +16,7 @@ class Visualization:
         self.x_data = []
         self.y_data = []
         self.segment_colors = []
+        self.delay_label_added = False  # Initialize the flag
 
     def setup_visualization(self, map_instance):
         """
@@ -27,8 +31,10 @@ class Visualization:
             self.canvas.get_tk_widget().destroy()
             self.canvas = None
 
-        self.canvas = FigureCanvasTkAgg(fig, master=self.root)
-        self.canvas.get_tk_widget().grid(row=12, column=0, columnspan=2)
+        self.canvas = FigureCanvasTkAgg(fig, master=self.parent)
+        self.canvas.get_tk_widget().pack(
+            fill=tk.BOTH, expand=True
+        )  # Use pack instead of grid
 
         # Plot the graph
         ox.plot_graph(
@@ -93,12 +99,3 @@ class Visualization:
         map_instance.original_edges = {}
         for u, v, data in map_instance.G.edges(data=True):
             map_instance.original_edges[(u, v)] = data
-
-    def update_visualization(self, x, y, color):
-        """
-        Updates the traversal marker and path.
-        """
-        self.point_plot.set_data(x, y)
-        self.line.set_data(x, y)
-        self.line.set_color(color)
-        self.canvas.draw()

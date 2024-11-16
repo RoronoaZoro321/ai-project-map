@@ -25,9 +25,21 @@ def main():
     style = ttk.Style()
     style.theme_use("clam")  # You can choose 'alt', 'default', 'classic', etc.
 
-    # Initialize GUI components
-    components = Components(root)
-    visualization = Visualization(root)
+    # Configure root grid to have two columns: Left for map, Right for controls
+    root.columnconfigure(0, weight=3)  # Left column (map) has more weight
+    root.columnconfigure(1, weight=2)  # Right column (controls)
+    root.rowconfigure(0, weight=1)
+
+    # Create left and right frames
+    left_frame = ttk.Frame(root, padding="5 5 5 5")
+    left_frame.grid(row=0, column=0, sticky="nsew")
+
+    right_frame = ttk.Frame(root, padding="5 5 5 5")
+    right_frame.grid(row=0, column=1, sticky="nsew")
+
+    # Initialize GUI components within the right frame
+    components = Components(right_frame)
+    visualization = Visualization(left_frame)
 
     # Load configuration
     config = ConfigParser()
