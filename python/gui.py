@@ -10,7 +10,7 @@ class MapNavigationApp:
     def __init__(self):
         # Initialize Prolog
         self.prolog = Prolog()
-        self.prolog.consult("../prolog/main.pl")
+        self.prolog.consult("../prolog/old/main.pl")
 
         # Initialize GUI
         self.root = tk.Tk()
