@@ -114,14 +114,9 @@ class Traversal:
                 map_instance.total_distance += delay_distance
 
                 # Update the traversal metrics to include the delay
-                map_instance.cumulative_times = [0]
-                for t in map_instance.times:
-                    map_instance.cumulative_times.append(
-                        map_instance.cumulative_times[-1] + t
-                    )
-                map_instance.cumulative_times[
-                    -1
-                ] += delay_time  # Add delay to the last cumulative time
+                # Add delay_time to all cumulative_times from the current index onwards
+                for i in range(idx + 1, len(map_instance.cumulative_times)):
+                    map_instance.cumulative_times[i] += delay_time
 
                 # Update the GUI labels to reflect the new total_time and total_distance
                 self.components.total_time_label.config(
@@ -133,7 +128,7 @@ class Traversal:
 
                 # Update the status label
                 self.components.status_label.config(
-                    text=f"Delay occurred on edge ({current_node}, {next_node}). Total time and distance updated."
+                    text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {delay_time} seconds."
                 )
 
                 # Update the segment color to yellow
@@ -170,6 +165,9 @@ class Traversal:
                 if (time_curr - time_prev) != 0
                 else 0
             )
+
+            # Clamp fraction between 0 and 1
+            frac = max(0, min(frac, 1))
 
             # Interpolate position
             x_prev = self.visualization.x_data[self.current_index]
