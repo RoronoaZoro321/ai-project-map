@@ -65,7 +65,7 @@ def on_compute_button_click():
         # Display the result in a message box
         messagebox.showinfo("Shortest Path Result", result)
         # Display the map with or without visualization
-        if visualize:
+        if not visualize:
             map_instance.create_map_with_folium("map_with_folium.html")
             # Open the HTML file in a web browser
             webbrowser.open("map_with_folium.html")
@@ -115,7 +115,7 @@ end_lon_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 end_lon_entry.insert(0, "100.6149335353964")  # Default value
 
 # Visualization option
-visualize_var = tk.BooleanVar(value=True)
+visualize_var = tk.BooleanVar(value=False)
 visualize_checkbox = ttk.Checkbutton(
     root, text="Simulate Real-Time Traversal", variable=visualize_var
 )
