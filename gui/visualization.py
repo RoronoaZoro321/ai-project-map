@@ -19,6 +19,11 @@ class Visualization:
         self.y_data = []
         self.segment_colors = []
         self.delay_label_added = False
+        self.G = None
+        self.route_line = None
+        self.detailed_route_line = None  # Track the detailed route line
+        self.routes_plotted = False  # Track whether routes are currently plotted
+
 
     def setup_visualization(self, map_instance):
         """
@@ -131,5 +136,84 @@ class Visualization:
             if isinstance(button, tk.Button):
                 button.config(bg="darkgray", fg="black", activebackground="gray", bd=2)
 
-    def plot_route(self, route):
-        pass
+    def toggle_routes(self, map_instance):
+        """
+        Toggles between plotting and clearing the routes (basic and detailed).
+        """
+        if not self.routes_plotted:
+            self.plot_route(map_instance)
+            self.plot_detailed_route(map_instance)
+            self.routes_plotted = True
+        else:
+            self.clear_routes()
+            self.routes_plotted = False
+
+    def plot_route(self, map_instance):
+        """
+        Plots the basic route on the map.
+        """
+        print("Plotting route on the map...")
+    
+        route_latlng = [(map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"]) for node in map_instance.route]
+        # Save the route line plot so it can be cleared later
+        self.route_line, = self.ax.plot(
+            [point[1] for point in route_latlng],
+            [point[0] for point in route_latlng],
+            linewidth=3, color="orange", label="Route"
+        )
+        self.canvas.draw()  # Force the canvas to update
+
+    def plot_detailed_route(self, map_instance):
+        """
+        Plots the detailed route on the map with annotations.
+        """
+        print("Plotting detailed route on the map...")
+
+        route_latlng = [(map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"]) for node in map_instance.route]
+        # Save the detailed route line plot so it can be cleared later
+        self.detailed_route_line, = self.ax.plot(
+            [point[1] for point in route_latlng],
+            [point[0] for point in route_latlng],
+            linewidth=3, color="orange", label="Detailed Route"
+        )
+
+        # Annotate edges with distance, speed, and travel time
+        for u, v in zip(map_instance.route[:-1], map_instance.route[1:]):
+            edge_data = map_instance.G[u][v][0]
+            mid_x = (map_instance.G.nodes[u]["x"] + map_instance.G.nodes[v]["x"]) / 2
+            mid_y = (map_instance.G.nodes[u]["y"] + map_instance.G.nodes[v]["y"]) / 2
+
+            distance = edge_data.get("length", 0)
+            speed = edge_data.get("speed_kph", 0)
+            travel_time = edge_data.get("travel_time", 0)
+
+            annotation = f"{distance:.0f} m, {speed:.0f} km/h, {travel_time:.0f} s"
+            self.ax.text(mid_x, mid_y, annotation, fontsize=8, color="blue", ha="center")
+
+        self.canvas.draw()  # Force the canvas to update
+
+    def clear_routes(self):
+        """
+        Clears both the basic route and the detailed route from the map.
+        """
+        print("Clearing routes from the map...")
+
+        # Remove the basic route line
+        if self.route_line is not None:
+            if self.route_line in self.ax.lines:
+                self.route_line.remove()
+            self.route_line = None
+
+        # Remove the detailed route line
+        if self.detailed_route_line is not None:
+            if self.detailed_route_line in self.ax.lines:
+                self.detailed_route_line.remove()
+            self.detailed_route_line = None
+
+        # Clear text annotations manually
+        texts_to_remove = list(self.ax.texts)  # Create a copy to avoid iteration issues
+        for text in texts_to_remove:
+            text.remove()
+
+        # Redraw the canvas to reflect changes
+        self.canvas.draw()

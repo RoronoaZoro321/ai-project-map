@@ -15,6 +15,11 @@ from utils.utils import format_time  # Import the helper function
 import os
 import osmnx as ox  # Ensure osmnx is imported
 
+import webbrowser
+import folium
+from tkinterweb import HtmlFrame
+
+
 
 def main():
     # Initialize Tkinter root
@@ -264,8 +269,56 @@ def main():
         if not map_instance:
             messagebox.showerror("Error", "Compute the shortest path first.")
             return
-        print("Displaying real map...")
-    
+
+        # Generate Folium map
+        print("Generating Folium map...")
+        folium_map = folium.Map(
+            location=[
+                (map_instance.start_location[0] + map_instance.end_location[0]) / 2,
+                (map_instance.start_location[1] + map_instance.end_location[1]) / 2,
+            ],
+            zoom_start=14,
+        )
+
+        # Add start and end markers
+        folium.Marker(map_instance.start_location, popup="Start", icon=folium.Icon(color="green")).add_to(folium_map)
+        folium.Marker(map_instance.end_location, popup="End", icon=folium.Icon(color="red")).add_to(folium_map)
+
+        # Plot the route
+        route_latlng = [
+            (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
+            for node in map_instance.route
+        ]
+        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(folium_map)
+
+        # Save the map to an HTML file
+        map_path = os.path.abspath("real_map.html")
+        folium_map.save(map_path)
+        print(f"Map saved to: {map_path}")
+
+        # Debug: Check if file exists
+        if not os.path.exists(map_path):
+            messagebox.showerror("Error", f"File not found: {map_path}")
+            return
+
+        # Convert file path to URL
+        file_url = urljoin("file:", pathname2url(map_path))
+
+        # Clear the left frame
+        for widget in left_frame.winfo_children():
+            widget.destroy()
+
+        # Display the HTML map 
+        html_frame = HtmlFrame(left_frame, horizontal_scrollbar="auto")
+        html_frame.load_url(file_url)
+        html_frame.pack(fill="both", expand=True)
+
+        # Open the HTML map in the default web browser
+        webbrowser.open(map_path)
+
+
+
+
 
     def on_view_as_graph_button_click():
         """
@@ -275,14 +328,27 @@ def main():
         if not map_instance:
             messagebox.showerror("Error", "Compute the shortest path first.")
             return
-        print("Displaying graph...")
-
         # plot the route in map_instance.route on map visualization
-        print(map_instance.route) # [8609171069, 1688054997, 2454005059, 8083403415, 1688055008, 8083417017, 1688055033, 1688064357, 1688064362, 1688055085, 7927791521, 1688055242, 286806891, 5395096987, 5395096986, 1688055343, 1688055334, 1688064438, 1688064399, 7919401526, 8610324027, 7919401525]
-        visualization.plot_route(map_instance.route)
+        # print(map_instance.route) # [8609171069, 1688054997, 2454005059, 8083403415, 1688055008, 8083417017, 1688055033, 1688064357, 1688064362, 1688055085, 7927791521, 1688055242, 286806891, 5395096987, 5395096986, 1688055343, 1688055334, 1688064438, 1688064399, 7919401526, 8610324027, 7919401525]
+        # plot the route in map_instance.route on map visualization
+        visualization.plot_route(map_instance)
+        # route_latlng = [ (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"]) for node in map_instance.route ]
 
-
-        
+    def on_view_as_detail_graph_button_click():
+        """
+        Event handler for the 'View Detailed Graph' button click.
+        """
+        map_instance = root.map_instance
+        if not map_instance:
+            messagebox.showerror("Error", "Compute the shortest path first.")
+            return
+        visualization.plot_detailed_route(map_instance)
+    
+    def on_clear_route_button_click():
+        """
+        Event handler for the 'Clear Route' button click.
+        """
+        visualization.clear_routes()
 
     # Assign event handlers to buttons
     components.compute_button.config(command=on_compute_button_click)
@@ -290,6 +356,8 @@ def main():
     components.cancel_traversal_button.config(command=cancel_traversal)
     components.view_real_map_button.config(command=on_view_as_map_button_click)
     components.view_graph_button.config(command=on_view_as_graph_button_click)
+    components.view_detail_graph_button.config(command=on_view_as_detail_graph_button_click)
+    components.clear_route_button.config(command=on_clear_route_button_click)
 
     # Initialize attributes in root
     root.map_instance = None

@@ -160,6 +160,16 @@ class Components:
         )
         self.view_graph_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
+        self.view_detail_graph_button = ttk.Button(
+            self.map_display_frame, text="View as Detailed Graph"
+        )
+        self.view_detail_graph_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+
+        self.clear_route_button = ttk.Button(
+            self.map_display_frame, text="Clear Route"
+        )
+        self.clear_route_button.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+
         # Display Frame Widgets
         # Path display
         path_label = ttk.Label(
