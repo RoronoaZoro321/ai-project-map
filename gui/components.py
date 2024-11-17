@@ -24,20 +24,26 @@ class Components:
         )
         self.control_frame.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
+        self.map_display_frame = ttk.LabelFrame(
+            self.parent, text="Map Display", padding="10 10 10 10"
+        )
+
+        self.map_display_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+
         self.display_frame = ttk.LabelFrame(
             self.parent, text="Path Display", padding="10 10 10 10"
         )
-        self.display_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+        self.display_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
 
         self.metrics_frame = ttk.LabelFrame(
             self.parent, text="Metrics", padding="10 10 10 10"
         )
-        self.metrics_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
+        self.metrics_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
 
         self.status_frame = ttk.LabelFrame(
             self.parent, text="Status", padding="10 10 10 10"
         )
-        self.status_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
+        self.status_frame.grid(row=5, column=0, padx=5, pady=5, sticky="nsew")
 
         # Configure grid weights for responsiveness
         self.parent.columnconfigure(0, weight=1)
@@ -141,6 +147,18 @@ class Components:
             self.control_frame, text="Cancel Traversal", state="disabled"
         )
         self.cancel_traversal_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+
+        # Map Display Frame Widgets
+        # View Real Map button
+        self.view_real_map_button = ttk.Button(
+            self.map_display_frame, text="View as Map"
+        )
+        self.view_real_map_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        # View Graph button
+        self.view_graph_button = ttk.Button(
+            self.map_display_frame, text="View as Graph"
+        )
+        self.view_graph_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Display Frame Widgets
         # Path display

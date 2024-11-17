@@ -255,11 +255,41 @@ def main():
         if traversal:
             traversal.cancel()
             components.cancel_traversal_button.config(state="disabled")
+    
+    def on_view_as_map_button_click():
+        """
+        Event handler for the 'View Real Map' button click.
+        """
+        map_instance = root.map_instance
+        if not map_instance:
+            messagebox.showerror("Error", "Compute the shortest path first.")
+            return
+        print("Displaying real map...")
+    
+
+    def on_view_as_graph_button_click():
+        """
+        Event handler for the 'View Graph' button click.
+        """
+        map_instance = root.map_instance
+        if not map_instance:
+            messagebox.showerror("Error", "Compute the shortest path first.")
+            return
+        print("Displaying graph...")
+
+        # plot the route in map_instance.route on map visualization
+        print(map_instance.route) # [8609171069, 1688054997, 2454005059, 8083403415, 1688055008, 8083417017, 1688055033, 1688064357, 1688064362, 1688055085, 7927791521, 1688055242, 286806891, 5395096987, 5395096986, 1688055343, 1688055334, 1688064438, 1688064399, 7919401526, 8610324027, 7919401525]
+        visualization.plot_route(map_instance.route)
+
+
+        
 
     # Assign event handlers to buttons
     components.compute_button.config(command=on_compute_button_click)
     components.start_traversal_button.config(command=start_traversal)
     components.cancel_traversal_button.config(command=cancel_traversal)
+    components.view_real_map_button.config(command=on_view_as_map_button_click)
+    components.view_graph_button.config(command=on_view_as_graph_button_click)
 
     # Initialize attributes in root
     root.map_instance = None

@@ -1,7 +1,8 @@
 # gui/visualization.py
 
 import tkinter as tk  # Ensure tkinter is imported
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import ttk  # Import ttk for custom styling
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
 import osmnx as ox
 
@@ -10,6 +11,7 @@ class Visualization:
     def __init__(self, parent):
         self.parent = parent
         self.canvas = None
+        self.toolbar = None  # Add reference for the toolbar
         self.ax = None
         self.line = None
         self.point_plot = None
@@ -23,18 +25,30 @@ class Visualization:
         Sets up the visualization for traversal.
         """
         # Set up the figure and axis
-        fig = plt.Figure(figsize=(8, 8))
+        fig = plt.Figure(figsize=(8,8))
         self.ax = fig.add_subplot(111)
+        self.ax.set_position([0, 0, 1, 1])  # left, bottom, right, top
 
-        # Clear previous canvas if any
+
+        # Clear previous canvas and toolbar if any
         if self.canvas:
             self.canvas.get_tk_widget().destroy()
             self.canvas = None
+        if self.toolbar:
+            self.toolbar.destroy()
+            self.toolbar = None
 
+        # Create the canvas and add it to the Tkinter parent
         self.canvas = FigureCanvasTkAgg(fig, master=self.parent)
-        self.canvas.get_tk_widget().pack(
-            fill=tk.BOTH, expand=True
-        )  # Use pack instead of grid
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        # Add Matplotlib's built-in navigation toolbar
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.parent)
+        self.toolbar.update()
+        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Customize toolbar button styles
+        self.style_toolbar_buttons()
 
         # Plot the graph
         ox.plot_graph(
@@ -108,3 +122,14 @@ class Visualization:
         self.line.set_data(x, y)
         self.line.set_color(color)
         self.canvas.draw()
+
+    def style_toolbar_buttons(self):
+        """
+        Customizes the appearance of the toolbar buttons.
+        """
+        for button in self.toolbar.winfo_children():
+            if isinstance(button, tk.Button):
+                button.config(bg="darkgray", fg="black", activebackground="gray", bd=2)
+
+    def plot_route(self, route):
+        pass
