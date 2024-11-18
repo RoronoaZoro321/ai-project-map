@@ -14,7 +14,10 @@ from utils.utils import format_time  # Import the helper function
 
 import os
 import osmnx as ox  # Ensure osmnx is imported
-
+import folium
+from tkhtmlview import HTMLLabel
+import webview
+import threading
 import webbrowser
 import folium
 from tkinterweb import HtmlFrame
@@ -347,55 +350,6 @@ def main():
             traversal.cancel()
             components.cancel_traversal_button.config(state="disabled")
 
-    def on_view_as_map_button_click():
-        """
-        Event handler for the 'View Real Map' button click.
-        """
-        map_instance = root.map_instance
-        if not map_instance:
-            messagebox.showerror("Error", "Compute the shortest path first.")
-            return
-
-        # Generate Folium map
-        print("Generating Folium map...")
-        folium_map = folium.Map(
-            location=[
-                (map_instance.start_location[0] + map_instance.end_location[0]) / 2,
-                (map_instance.start_location[1] + map_instance.end_location[1]) / 2,
-            ],
-            zoom_start=14,
-        )
-
-        # Add start and end markers
-        folium.Marker(
-            map_instance.start_location, popup="Start", icon=folium.Icon(color="green")
-        ).add_to(folium_map)
-        folium.Marker(
-            map_instance.end_location, popup="End", icon=folium.Icon(color="red")
-        ).add_to(folium_map)
-
-        # Plot the route
-        route_latlng = [
-            (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
-            for node in map_instance.route
-        ]
-        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(
-            folium_map
-        )
-
-        # Save the map to an HTML file
-        map_path = os.path.abspath("real_map.html")
-        folium_map.save(map_path)
-        print(f"Map saved to: {map_path}")
-
-        # Debug: Check if file exists
-        if not os.path.exists(map_path):
-            messagebox.showerror("Error", f"File not found: {map_path}")
-            return
-
-        # Open the HTML map in the default web browser
-        webbrowser.open(f"file://{map_path}")
-
     def on_view_as_graph_button_click():
         """
         Event handler for the 'View Graph' button click.
@@ -434,6 +388,53 @@ def main():
         root.map_instance = None
         root.traversal = None
 
+
+    def on_view_as_map_button_click():
+        """
+        Event handler for the 'View Real Map' button click.
+        Displays a Folium map in a WebView window.
+        """
+        map_instance = root.map_instance
+        if not map_instance:
+            messagebox.showerror("Error", "Compute the shortest path first.")
+            return
+
+        # Generate Folium map
+        print("Generating Folium map...")
+        folium_map = folium.Map(
+            location=[
+                (map_instance.start_location[0] + map_instance.end_location[0]) / 2,
+                (map_instance.start_location[1] + map_instance.end_location[1]) / 2,
+            ],
+            zoom_start=14,
+        )
+
+        # Add start and end markers
+        folium.Marker(map_instance.start_location, popup="Start", icon=folium.Icon(color="green")).add_to(folium_map)
+        folium.Marker(map_instance.end_location, popup="End", icon=folium.Icon(color="red")).add_to(folium_map)
+
+        # Plot the route
+        route_latlng = [
+            (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
+            for node in map_instance.route
+        ]
+        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(folium_map)
+
+        # Save Folium map to an HTML file
+        html_file_path = "map.html"
+        folium_map.save(html_file_path)
+
+        # # Use pywebview to render the map
+        # window_webview = webview.create_window("Interactive Map", html_file_path)
+        # # tkinter window
+        # webview.start(gui="tks")
+
+        # Use webbrowser to open the map in the default browser
+        # open in brave browser
+        webbrowser.open("file://" + os.path.realpath("map.html"))
+
+
+    # Assign event handlers to buttons    
     # Assign event handlers to buttons
     components.add_node_button.config(command=on_add_node)
     components.remove_node_button.config(command=on_remove_node)
