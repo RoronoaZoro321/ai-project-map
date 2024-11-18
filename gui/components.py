@@ -1,7 +1,7 @@
 # gui/components.py
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 
 class Components:
@@ -27,23 +27,23 @@ class Components:
         self.map_display_frame = ttk.LabelFrame(
             self.parent, text="Map Display", padding="10 10 10 10"
         )
-
         self.map_display_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
 
-        self.display_frame = ttk.LabelFrame(
-            self.parent, text="Path Display", padding="10 10 10 10"
-        )
-        self.display_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
+        # Remove or Comment Out the Display Frame
+        # self.display_frame = ttk.LabelFrame(
+        #     self.parent, text="Path Display", padding="10 10 10 10"
+        # )
+        # self.display_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
 
         self.metrics_frame = ttk.LabelFrame(
             self.parent, text="Metrics", padding="10 10 10 10"
         )
-        self.metrics_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
+        self.metrics_frame.grid(row=3, column=0, padx=5, pady=5, sticky="nsew")
 
         self.status_frame = ttk.LabelFrame(
             self.parent, text="Status", padding="10 10 10 10"
         )
-        self.status_frame.grid(row=5, column=0, padx=5, pady=5, sticky="nsew")
+        self.status_frame.grid(row=4, column=0, padx=5, pady=5, sticky="nsew")
 
         # Configure grid weights for responsiveness
         self.parent.columnconfigure(0, weight=1)
@@ -59,12 +59,12 @@ class Components:
         style.configure("Error.TLabel", foreground="red")
 
         # Input Frame Widgets
-        # Transportation Mode Selection
+        # Transportation Mode and Pathfinding Algorithm (Same Line)
         self.transportation_mode_var = tk.StringVar(value="car")
         transportation_mode_label = ttk.Label(
             self.input_frame, text="Transportation Mode:", style="TLabel"
         )
-        transportation_mode_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        transportation_mode_label.grid(row=0, column=0, padx=5, pady=5, sticky="e")
         transportation_mode_dropdown = ttk.OptionMenu(
             self.input_frame,
             self.transportation_mode_var,
@@ -75,50 +75,54 @@ class Components:
         )
         transportation_mode_dropdown.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
-        # Algorithm Selection
         self.algorithm_var = tk.StringVar(value="dijkstra")  # Initialize algorithm_var
         algorithm_label = ttk.Label(
             self.input_frame, text="Pathfinding Algorithm:", style="TLabel"
         )
-        algorithm_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        algorithm_label.grid(row=0, column=2, padx=5, pady=5, sticky="e")
         algorithm_dropdown = ttk.OptionMenu(
             self.input_frame, self.algorithm_var, "dijkstra", "dijkstra", "astar"
         )
-        algorithm_dropdown.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        algorithm_dropdown.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
-        # Start location entries
-        start_lat_label = ttk.Label(
-            self.input_frame, text="Start Latitude:", style="TLabel"
-        )
-        start_lat_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.start_lat_entry = ttk.Entry(self.input_frame, width=20)
-        self.start_lat_entry.grid(row=2, column=1, padx=5, pady=5, sticky="w")
-        self.start_lat_entry.insert(0, "13.621244148739478")  # Default value
+        # Node Input Entries (Aligned on the Same Line)
+        lat_label = ttk.Label(self.input_frame, text="Latitude:", style="TLabel")
+        lat_label.grid(row=1, column=0, padx=5, pady=5, sticky="e")
 
-        start_lon_label = ttk.Label(
-            self.input_frame, text="Start Longitude:", style="TLabel"
-        )
-        start_lon_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.start_lon_entry = ttk.Entry(self.input_frame, width=20)
-        self.start_lon_entry.grid(row=3, column=1, padx=5, pady=5, sticky="w")
-        self.start_lon_entry.insert(0, "100.61953164076222")  # Default value
+        self.lat_entry = ttk.Entry(self.input_frame, width=15)
+        self.lat_entry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.lat_entry.insert(0, "13.621244")  # Default value
 
-        # End location entries
-        end_lat_label = ttk.Label(
-            self.input_frame, text="End Latitude:", style="TLabel"
-        )
-        end_lat_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        self.end_lat_entry = ttk.Entry(self.input_frame, width=20)
-        self.end_lat_entry.grid(row=4, column=1, padx=5, pady=5, sticky="w")
-        self.end_lat_entry.insert(0, "13.626794128718828")  # Default value
+        lon_label = ttk.Label(self.input_frame, text="Longitude:", style="TLabel")
+        lon_label.grid(row=1, column=2, padx=5, pady=5, sticky="e")
 
-        end_lon_label = ttk.Label(
-            self.input_frame, text="End Longitude:", style="TLabel"
+        self.lon_entry = ttk.Entry(self.input_frame, width=15)
+        self.lon_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+        self.lon_entry.insert(0, "100.619532")  # Default value
+
+        # Add Node Button
+        self.add_node_button = ttk.Button(self.input_frame, text="Add Node")
+        self.add_node_button.grid(
+            row=2, column=0, columnspan=4, padx=5, pady=5, sticky="ew"
         )
-        end_lon_label.grid(row=5, column=0, padx=5, pady=5, sticky="w")
-        self.end_lon_entry = ttk.Entry(self.input_frame, width=20)
-        self.end_lon_entry.grid(row=5, column=1, padx=5, pady=5, sticky="w")
-        self.end_lon_entry.insert(0, "100.6149335353964")  # Default value
+
+        # Remove Node Button
+        self.remove_node_button = ttk.Button(
+            self.input_frame, text="Remove Selected Node"
+        )
+        self.remove_node_button.grid(
+            row=3, column=0, columnspan=4, padx=5, pady=5, sticky="ew"
+        )
+
+        # Listbox to Display Added Nodes
+        nodes_label = ttk.Label(self.input_frame, text="Added Nodes:", style="TLabel")
+        nodes_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+        self.nodes_listbox = tk.Listbox(
+            self.input_frame, height=5, width=50, font=("Arial", 10)
+        )
+        self.nodes_listbox.grid(
+            row=5, column=0, columnspan=4, padx=5, pady=5, sticky="nsew"
+        )
 
         # Delay probability input
         delay_prob_label = ttk.Label(
@@ -138,7 +142,7 @@ class Components:
 
         # Start traversal button
         self.start_traversal_button = ttk.Button(
-            self.control_frame, text="Start Traversal"
+            self.control_frame, text="Start Traversal", state="disabled"
         )
         self.start_traversal_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
@@ -161,50 +165,56 @@ class Components:
         self.view_graph_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         self.view_detail_graph_button = ttk.Button(
-            self.map_display_frame, text="View as Detailed Graph"
+            self.map_display_frame, text="View Detailed Graph"
         )
         self.view_detail_graph_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
-        self.clear_route_button = ttk.Button(
-            self.map_display_frame, text="Clear Route"
-        )
+        self.clear_route_button = ttk.Button(self.map_display_frame, text="Clear Route")
         self.clear_route_button.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
-        # Display Frame Widgets
-        # Path display
-        path_label = ttk.Label(
-            self.display_frame, text="Computed Path:", style="TLabel"
-        )
-        path_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.path_text = tk.Text(
-            self.display_frame, height=10, width=50, font=("Arial", 10)
-        )
-        self.path_text.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+        # Remove Path Display Widgets
+        # Commenting out the Path Display Label and Text Box
+        # path_label = ttk.Label(
+        #     self.display_frame, text="Computed Path:", style="TLabel"
+        # )
+        # path_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        # self.path_text = tk.Text(
+        #     self.display_frame, height=10, width=50, font=("Arial", 10)
+        # )
+        # self.path_text.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
 
         # Metrics Frame Widgets
-        # Total time label
+        # Row 0: Total Time, Total Distance, Total Delay Time
         self.total_time_label = ttk.Label(
             self.metrics_frame, text="Total Time: 00:00", style="Info.TLabel"
         )
         self.total_time_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-        # Total distance label
         self.total_distance_label = ttk.Label(
             self.metrics_frame, text="Total Distance: 0.00 m", style="Info.TLabel"
         )
         self.total_distance_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
-        # Remaining time label
+        self.total_delay_label = ttk.Label(
+            self.metrics_frame, text="Total Delay Time: 00:00", style="Info.TLabel"
+        )
+        self.total_delay_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+
+        # Row 1: Remaining Time, Remaining Distance, Time Difference
         self.remaining_time_label = ttk.Label(
             self.metrics_frame, text="Remaining Time: 00:00", style="Info.TLabel"
         )
         self.remaining_time_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
-        # Remaining distance label
         self.remaining_distance_label = ttk.Label(
             self.metrics_frame, text="Remaining Distance: 0.00 m", style="Info.TLabel"
         )
         self.remaining_distance_label.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+
+        self.time_difference_label = ttk.Label(
+            self.metrics_frame, text="Time Difference: 00:00", style="Info.TLabel"
+        )
+        self.time_difference_label.grid(row=1, column=2, padx=5, pady=5, sticky="w")
 
         # Status Frame Widgets
         # Status message label
@@ -221,10 +231,11 @@ class Components:
         self.info_log = tk.Text(
             self.status_frame,
             height=10,
-            width=50,
+            width=100,
             state="disabled",
             font=("Arial", 10),
             background="#000000",
+            foreground="#00FF00",
             relief="sunken",
             borderwidth=2,
         )
@@ -234,14 +245,24 @@ class Components:
         for frame in [
             self.input_frame,
             self.control_frame,
-            self.display_frame,
+            self.map_display_frame,
             self.metrics_frame,
             self.status_frame,
         ]:
             frame.columnconfigure(0, weight=1)
             frame.columnconfigure(1, weight=1)
             frame.columnconfigure(2, weight=1)
+            frame.columnconfigure(3, weight=1)
+
+        # Configure row and column weights for Status Frame to stretch info_log
+        self.status_frame.rowconfigure(2, weight=1)
+        self.status_frame.columnconfigure(0, weight=1)
 
         # Optionally, configure row weights if needed
-        self.display_frame.rowconfigure(1, weight=1)
-        self.status_frame.rowconfigure(2, weight=1)
+        self.metrics_frame.rowconfigure(0, weight=1)
+        self.metrics_frame.rowconfigure(1, weight=1)
+        # self.display_frame.rowconfigure(1, weight=1)
+        # self.status_frame.rowconfigure(2, weight=1)
+
+        # Additional Widgets for Node Management
+        # These widgets have already been added above: Add Node, Remove Node, and Listbox

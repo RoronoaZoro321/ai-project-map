@@ -1,8 +1,8 @@
 # map/map.py
 
-import warnings
 from geopy.distance import geodesic
 import osmnx as ox
+import warnings
 
 
 class Map:
@@ -38,22 +38,6 @@ class Map:
         self.processed_edges = set()  # Set to track edges already evaluated for delays
         self.delayed_edges = []  # List of edges with delays
 
-    def __str__(self):
-        return f"""
-            Map: Start Location: {self.start_location}
-            End Location: {self.end_location}
-            Distance: {self.distance_km:.2f} km
-            Buffer Distance: {self.buffer_dist:.2f} m
-            Total Nodes: {len(self.G.nodes)}
-            Total Edges: {len(self.G.edges)}
-        """
-
-    def get_midpoint(self):
-        return (
-            (self.start_location[0] + self.end_location[0]) / 2,
-            (self.start_location[1] + self.end_location[1]) / 2,
-        )
-
     def generate_graph(self, speed_kph):
         """
         Generates the road network graph based on the midpoint and buffer distance.
@@ -81,6 +65,8 @@ class Map:
         except Exception as e:
             raise ValueError(f"Failed to generate graph: {e}")
 
-    def create_map_without_folium(self):
-        # Optional: Implement this method if needed
-        pass
+    def get_midpoint(self):
+        return (
+            (self.start_location[0] + self.end_location[0]) / 2,
+            (self.start_location[1] + self.end_location[1]) / 2,
+        )

@@ -1,5 +1,3 @@
-# gui/visualization.py
-
 import tkinter as tk  # Ensure tkinter is imported
 from tkinter import ttk  # Import ttk for custom styling
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -24,16 +22,14 @@ class Visualization:
         self.detailed_route_line = None  # Track the detailed route line
         self.routes_plotted = False  # Track whether routes are currently plotted
 
-
     def setup_visualization(self, map_instance):
         """
         Sets up the visualization for traversal.
         """
         # Set up the figure and axis
-        fig = plt.Figure(figsize=(8,8))
+        fig = plt.Figure(figsize=(8, 8))
         self.ax = fig.add_subplot(111)
         self.ax.set_position([0, 0, 1, 1])  # left, bottom, right, top
-
 
         # Clear previous canvas and toolbar if any
         if self.canvas:
@@ -153,13 +149,24 @@ class Visualization:
         Plots the basic route on the map.
         """
         print("Plotting route on the map...")
-    
-        route_latlng = [(map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"]) for node in map_instance.route]
+
+        # To avoid duplicate nodes, ensure that consecutive nodes are unique
+        unique_route = [map_instance.route[0]]
+        for node in map_instance.route[1:]:
+            if node != unique_route[-1]:
+                unique_route.append(node)
+
+        route_latlng = [
+            (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
+            for node in unique_route
+        ]
         # Save the route line plot so it can be cleared later
-        self.route_line, = self.ax.plot(
+        (self.route_line,) = self.ax.plot(
             [point[1] for point in route_latlng],
             [point[0] for point in route_latlng],
-            linewidth=3, color="orange", label="Route"
+            linewidth=3,
+            color="orange",
+            label="Route",
         )
         self.canvas.draw()  # Force the canvas to update
 
@@ -169,16 +176,27 @@ class Visualization:
         """
         print("Plotting detailed route on the map...")
 
-        route_latlng = [(map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"]) for node in map_instance.route]
+        # To avoid duplicate nodes, ensure that consecutive nodes are unique
+        unique_route = [map_instance.route[0]]
+        for node in map_instance.route[1:]:
+            if node != unique_route[-1]:
+                unique_route.append(node)
+
+        route_latlng = [
+            (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
+            for node in unique_route
+        ]
         # Save the detailed route line plot so it can be cleared later
-        self.detailed_route_line, = self.ax.plot(
+        (self.detailed_route_line,) = self.ax.plot(
             [point[1] for point in route_latlng],
             [point[0] for point in route_latlng],
-            linewidth=3, color="orange", label="Detailed Route"
+            linewidth=3,
+            color="orange",
+            label="Detailed Route",
         )
 
         # Annotate edges with distance, speed, and travel time
-        for u, v in zip(map_instance.route[:-1], map_instance.route[1:]):
+        for u, v in zip(unique_route[:-1], unique_route[1:]):
             edge_data = map_instance.G[u][v][0]
             mid_x = (map_instance.G.nodes[u]["x"] + map_instance.G.nodes[v]["x"]) / 2
             mid_y = (map_instance.G.nodes[u]["y"] + map_instance.G.nodes[v]["y"]) / 2
@@ -188,7 +206,9 @@ class Visualization:
             travel_time = edge_data.get("travel_time", 0)
 
             annotation = f"{distance:.0f} m, {speed:.0f} km/h, {travel_time:.0f} s"
-            self.ax.text(mid_x, mid_y, annotation, fontsize=8, color="blue", ha="center")
+            self.ax.text(
+                mid_x, mid_y, annotation, fontsize=8, color="blue", ha="center"
+            )
 
         self.canvas.draw()  # Force the canvas to update
 

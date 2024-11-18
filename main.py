@@ -20,7 +20,6 @@ import folium
 from tkinterweb import HtmlFrame
 
 
-
 def main():
     # Initialize Tkinter root
     root = tk.Tk()
@@ -63,85 +62,186 @@ def main():
     # Initialize map_instance as None
     root.map_instance = None  # Will be set after user inputs
 
+    # Initialize node list
+    root.node_list = []  # List of (lat, lng) tuples
+
     # Define event handlers
+    def on_add_node():
+        """
+        Event handler for the 'Add Node' button click.
+        Adds a new node to the node list.
+        """
+        try:
+            lat = float(components.lat_entry.get())
+            lng = float(components.lon_entry.get())
+            validate_coordinates(lat, lng)
+            root.node_list.append((lat, lng))
+            update_nodes_listbox()
+            messagebox.showinfo("Success", f"Node ({lat}, {lng}) added.")
+        except ValueError as ve:
+            messagebox.showerror("Invalid Input", str(ve))
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def on_remove_node():
+        """
+        Event handler for the 'Remove Selected Node' button click.
+        Removes the selected node from the node list.
+        """
+        try:
+            selection = components.nodes_listbox.curselection()
+            if not selection:
+                messagebox.showwarning("No Selection", "No node selected to remove.")
+                return
+            index = selection[0]
+            removed_node = root.node_list.pop(index)
+            update_nodes_listbox()
+            messagebox.showinfo("Removed", f"Node {removed_node} removed.")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def update_nodes_listbox():
+        """
+        Updates the listbox displaying the added nodes.
+        """
+        components.nodes_listbox.delete(0, tk.END)
+        for idx, (lat, lng) in enumerate(root.node_list, start=1):
+            components.nodes_listbox.insert(tk.END, f"{idx}. Lat: {lat}, Lng: {lng}")
+
     def on_compute_button_click():
         """
         Event handler for the 'Compute Shortest Path' button click.
+        Computes the shortest paths between consecutive nodes.
         """
         try:
-            # Retrieve user inputs
-            start_lat = float(components.start_lat_entry.get())
-            start_lon = float(components.start_lon_entry.get())
-            end_lat = float(components.end_lat_entry.get())
-            end_lon = float(components.end_lon_entry.get())
+            if len(root.node_list) < 2:
+                raise ValueError("Please add at least two nodes to compute a path.")
+
             algorithm = components.algorithm_var.get()
             transportation_mode = components.transportation_mode_var.get()
-
-            # Validate coordinates
-            validate_coordinates(start_lat, start_lon, end_lat, end_lon)
 
             # Get speed based on transportation mode
             mode_speed = get_mode_speed(transportation_mode)
 
-            # Create map and compute shortest path with the selected speed
-            new_map_instance = Map(
-                (start_lat, start_lon), (end_lat, end_lon), speed_kph=mode_speed
-            )
-            new_map_instance.prolog_interface = (
-                prolog_interface  # Assign Prolog interface
-            )
-            prolog_interface.clear_dynamic_facts()
-            prolog_interface.assert_nodes(new_map_instance.G)
-            prolog_interface.assert_edges(new_map_instance.G)
+            # Initialize overall path and total distance
+            overall_route = []
+            overall_distance = 0
 
-            # Find nearest nodes
-            orig_node = ox.distance.nearest_nodes(
-                new_map_instance.G,
-                X=new_map_instance.start_location[1],
-                Y=new_map_instance.start_location[0],
-            )
-            dest_node = ox.distance.nearest_nodes(
-                new_map_instance.G,
-                X=new_map_instance.end_location[1],
-                Y=new_map_instance.end_location[0],
-            )
-            new_map_instance.orig_node = orig_node
-            new_map_instance.dest_node = dest_node
-            new_map_instance.prolog_algorithm = algorithm
+            # Iterate through consecutive node pairs
+            for i in range(len(root.node_list) - 1):
+                start = root.node_list[i]
+                end = root.node_list[i + 1]
 
-            # Compute shortest path via Prolog
-            path, distance = prolog_interface.compute_shortest_path(
-                orig_node, dest_node, algorithm
-            )
-            new_map_instance.route = path
-            new_map_instance.total_distance = distance
+                # Create a temporary Map instance for each pair
+                temp_map = Map(start, end, speed_kph=mode_speed)
+                temp_map.prolog_interface = prolog_interface  # Assign Prolog interface
+                prolog_interface.clear_dynamic_facts()
+                prolog_interface.assert_nodes(temp_map.G)
+                prolog_interface.assert_edges(temp_map.G)
+
+                # Find nearest nodes in the graph
+                orig_node = ox.distance.nearest_nodes(
+                    temp_map.G,
+                    X=temp_map.start_location[1],
+                    Y=temp_map.start_location[0],
+                )
+                dest_node = ox.distance.nearest_nodes(
+                    temp_map.G,
+                    X=temp_map.end_location[1],
+                    Y=temp_map.end_location[0],
+                )
+                temp_map.orig_node = orig_node
+                temp_map.dest_node = dest_node
+                temp_map.prolog_algorithm = algorithm
+
+                # Compute shortest path via Prolog
+                path, distance = prolog_interface.compute_shortest_path(
+                    orig_node, dest_node, algorithm
+                )
+
+                # Append to overall route (avoid duplicating nodes)
+                if i == 0:
+                    overall_route.extend(path)
+                else:
+                    overall_route.extend(
+                        path[1:]
+                    )  # Skip the first node to avoid duplication
+
+                overall_distance += distance
+
+            # Update the main map instance with the aggregated route
+            main_map = aggregate_routes(
+                overall_route, temp_map.G
+            )  # Pass the graph here
+            main_map.total_distance = overall_distance
+            main_map.prolog_algorithm = algorithm
 
             # Calculate traversal metrics
-            calculate_traversal_metrics(new_map_instance)
+            calculate_traversal_metrics(main_map)
 
             # Update the GUI components
-            display_path(new_map_instance, components)
-            visualization.setup_visualization(new_map_instance)
+            # Removed the display_path function call since path display is deleted
+            visualization.setup_visualization(main_map)
+
+            # Update Metrics Labels
+            components.total_time_label.config(
+                text=f"Total Time: {format_time(main_map.total_time)}"
+            )
+            components.total_distance_label.config(
+                text=f"Total Distance: {main_map.total_distance:.2f} m"
+            )
+            # Initialize Total Delay Time and Time Difference
+            components.total_delay_label.config(text="Total Delay Time: 00:00")
+            components.time_difference_label.config(text="Time Difference: 00:00")
 
             # Store the map_instance
-            root.map_instance = new_map_instance
+            root.map_instance = main_map
 
             # Enable the 'Start Traversal' button
             components.start_traversal_button.config(state="normal")
 
+            messagebox.showinfo("Success", "Shortest path computed successfully.")
+
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def validate_coordinates(start_lat, start_lon, end_lat, end_lon):
+    def aggregate_routes(route, G):
+        """
+        Aggregates the individual routes into a single Map instance.
+
+        Args:
+            route (list): List of node IDs representing the aggregated route.
+            G (networkx.MultiDiGraph): The graph containing node information.
+
+        Returns:
+            Map: An instance of the Map class with the aggregated route.
+        """
+        if not route:
+            raise ValueError("No route to aggregate.")
+
+        if root.map_instance:
+            root.map_instance.route = route
+            return root.map_instance
+        else:
+            first_node = route[0]
+            last_node = route[-1]
+
+            # Retrieve coordinates for the first and last nodes
+            first_coords = (G.nodes[first_node]["y"], G.nodes[first_node]["x"])
+            last_coords = (G.nodes[last_node]["y"], G.nodes[last_node]["x"])
+
+            aggregated_map = Map(first_coords, last_coords)
+            aggregated_map.route = route
+            return aggregated_map
+
+    def validate_coordinates(lat, lng):
         """
         Validates the latitude and longitude inputs.
         """
-        for lat in [start_lat, end_lat]:
-            if not (-90 <= lat <= 90):
-                raise ValueError("Latitude must be between -90 and 90 degrees.")
-        for lon in [start_lon, end_lon]:
-            if not (-180 <= lon <= 180):
-                raise ValueError("Longitude must be between -180 and 180 degrees.")
+        if not (-90 <= lat <= 90):
+            raise ValueError("Latitude must be between -90 and 90 degrees.")
+        if not (-180 <= lng <= 180):
+            raise ValueError("Longitude must be between -180 and 180 degrees.")
 
     def get_mode_speed(mode):
         """
@@ -205,26 +305,6 @@ def main():
         map_instance.total_distance = total_distance
         map_instance.total_time = total_time
 
-    def display_path(map_instance, components):
-        """
-        Displays the computed path in the GUI.
-        """
-        output = f"Shortest path from {map_instance.orig_node} to {map_instance.dest_node} using {map_instance.prolog_algorithm}:\n"
-        output += f"Path (Node IDs):\n"
-        for idx, node in enumerate(map_instance.route):
-            output += f"{idx}: {node}\n"
-
-        components.path_text.delete(1.0, tk.END)
-        components.path_text.insert(tk.END, output)
-
-        # Update total time and distance labels using format_time
-        components.total_time_label.config(
-            text=f"Total Time: {format_time(map_instance.total_time)}"
-        )
-        components.total_distance_label.config(
-            text=f"Total Distance: {map_instance.total_distance:.2f} m"
-        )
-
     def start_traversal():
         """
         Starts the traversal with delays assigned by Prolog based on probability.
@@ -249,6 +329,12 @@ def main():
             # Start the traversal
             traversal.start(delay_probability)  # Pass delay_probability
 
+            # Update Metrics Labels for Delays
+            # Initialize Total Delay Time and Time Difference
+            traversal.set_metrics_labels(
+                components.total_delay_label, components.time_difference_label
+            )
+
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -260,7 +346,7 @@ def main():
         if traversal:
             traversal.cancel()
             components.cancel_traversal_button.config(state="disabled")
-    
+
     def on_view_as_map_button_click():
         """
         Event handler for the 'View Real Map' button click.
@@ -281,15 +367,21 @@ def main():
         )
 
         # Add start and end markers
-        folium.Marker(map_instance.start_location, popup="Start", icon=folium.Icon(color="green")).add_to(folium_map)
-        folium.Marker(map_instance.end_location, popup="End", icon=folium.Icon(color="red")).add_to(folium_map)
+        folium.Marker(
+            map_instance.start_location, popup="Start", icon=folium.Icon(color="green")
+        ).add_to(folium_map)
+        folium.Marker(
+            map_instance.end_location, popup="End", icon=folium.Icon(color="red")
+        ).add_to(folium_map)
 
         # Plot the route
         route_latlng = [
             (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
             for node in map_instance.route
         ]
-        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(folium_map)
+        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(
+            folium_map
+        )
 
         # Save the map to an HTML file
         map_path = os.path.abspath("real_map.html")
@@ -301,24 +393,8 @@ def main():
             messagebox.showerror("Error", f"File not found: {map_path}")
             return
 
-        # Convert file path to URL
-        file_url = urljoin("file:", pathname2url(map_path))
-
-        # Clear the left frame
-        for widget in left_frame.winfo_children():
-            widget.destroy()
-
-        # Display the HTML map 
-        html_frame = HtmlFrame(left_frame, horizontal_scrollbar="auto")
-        html_frame.load_url(file_url)
-        html_frame.pack(fill="both", expand=True)
-
         # Open the HTML map in the default web browser
-        webbrowser.open(map_path)
-
-
-
-
+        webbrowser.open(f"file://{map_path}")
 
     def on_view_as_graph_button_click():
         """
@@ -329,10 +405,7 @@ def main():
             messagebox.showerror("Error", "Compute the shortest path first.")
             return
         # plot the route in map_instance.route on map visualization
-        # print(map_instance.route) # [8609171069, 1688054997, 2454005059, 8083403415, 1688055008, 8083417017, 1688055033, 1688064357, 1688064362, 1688055085, 7927791521, 1688055242, 286806891, 5395096987, 5395096986, 1688055343, 1688055334, 1688064438, 1688064399, 7919401526, 8610324027, 7919401525]
-        # plot the route in map_instance.route on map visualization
         visualization.plot_route(map_instance)
-        # route_latlng = [ (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"]) for node in map_instance.route ]
 
     def on_view_as_detail_graph_button_click():
         """
@@ -343,20 +416,35 @@ def main():
             messagebox.showerror("Error", "Compute the shortest path first.")
             return
         visualization.plot_detailed_route(map_instance)
-    
+
     def on_clear_route_button_click():
         """
         Event handler for the 'Clear Route' button click.
         """
         visualization.clear_routes()
+        # Removed clearing path_text since it's no longer present
+        components.total_time_label.config(text="Total Time: 00:00")
+        components.total_distance_label.config(text="Total Distance: 0.00 m")
+        components.remaining_time_label.config(text="Remaining Time: 00:00")
+        components.remaining_distance_label.config(text="Remaining Distance: 0.00 m")
+        components.status_label.config(text="Status: N/A", style="Error.TLabel")
+        # Reset delay metrics
+        components.total_delay_label.config(text="Total Delay Time: 00:00")
+        components.time_difference_label.config(text="Time Difference: 00:00")
+        root.map_instance = None
+        root.traversal = None
 
     # Assign event handlers to buttons
+    components.add_node_button.config(command=on_add_node)
+    components.remove_node_button.config(command=on_remove_node)
     components.compute_button.config(command=on_compute_button_click)
     components.start_traversal_button.config(command=start_traversal)
     components.cancel_traversal_button.config(command=cancel_traversal)
     components.view_real_map_button.config(command=on_view_as_map_button_click)
     components.view_graph_button.config(command=on_view_as_graph_button_click)
-    components.view_detail_graph_button.config(command=on_view_as_detail_graph_button_click)
+    components.view_detail_graph_button.config(
+        command=on_view_as_detail_graph_button_click
+    )
     components.clear_route_button.config(command=on_clear_route_button_click)
 
     # Initialize attributes in root
@@ -366,25 +454,22 @@ def main():
     root.mainloop()
 
 
-def display_path(map_instance, components):
+def aggregate_routes(route):
     """
-    Displays the computed path in the GUI.
+    Aggregates the individual routes into a single Map instance.
     """
-    output = f"Shortest path from {map_instance.orig_node} to {map_instance.dest_node} using {map_instance.prolog_algorithm}:\n"
-    output += f"Path (Node IDs):\n"
-    for idx, node in enumerate(map_instance.route):
-        output += f"{idx}: {node}\n"
+    if not route:
+        raise ValueError("No route to aggregate.")
 
-    components.path_text.delete(1.0, tk.END)
-    components.path_text.insert(tk.END, output)
-
-    # Update total time and distance labels using format_time
-    components.total_time_label.config(
-        text=f"Total Time: {format_time(map_instance.total_time)}"
+    # Use the existing map_instance or create a new one
+    # For simplicity, we'll assume the map_instance exists and has the graph
+    # If not, additional handling may be required
+    # Here, we'll return the current map_instance with updated route
+    aggregated_map = (
+        root.map_instance if root.map_instance else Map(route[0], route[-1])
     )
-    components.total_distance_label.config(
-        text=f"Total Distance: {map_instance.total_distance:.2f} m"
-    )
+    aggregated_map.route = route
+    return aggregated_map
 
 
 if __name__ == "__main__":

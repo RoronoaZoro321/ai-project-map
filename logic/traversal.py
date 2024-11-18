@@ -15,6 +15,15 @@ class Traversal:
         self.prolog_interface = prolog_interface
         self.cancelled = False
         self.delay_label_added = False
+        self.total_delay_time = 0  # Initialize total delay time
+        self.original_total_time = map_instance.total_time  # Store original total time
+
+    def set_metrics_labels(self, total_delay_label, time_difference_label):
+        """
+        Sets the labels for Total Delay Time and Time Difference.
+        """
+        self.total_delay_label = total_delay_label
+        self.time_difference_label = time_difference_label
 
     def start(self, delay_probability):
         """
@@ -148,6 +157,18 @@ class Traversal:
             )
             self.components.total_distance_label.config(
                 text=f"Total Distance: {map_instance.total_distance:.2f} m"
+            )
+
+            # Update the Total Delay Time
+            self.total_delay_time += delay_time
+            self.total_delay_label.config(
+                text=f"Total Delay Time: {format_time(self.total_delay_time)}"
+            )
+
+            # Calculate Time Difference
+            time_difference = map_instance.total_time - self.original_total_time
+            self.time_difference_label.config(
+                text=f"Time Difference: {format_time(time_difference)}"
             )
 
             # Update the status label with the randomized delay_time
