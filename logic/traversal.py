@@ -1,5 +1,6 @@
 # logic/traversal.py
 
+import random  # Import the random module
 import tkinter as tk
 import time
 from utils.utils import format_time
@@ -126,8 +127,10 @@ class Traversal:
             # Mark this edge as processed
             map_instance.processed_edges.add(edge)
 
-            # Define delay parameters
-            delay_time = 10  # seconds
+            # Define delay parameters with random delay_time
+            delay_time = random.randint(
+                10, 30
+            )  # Random delay between 10 and 30 seconds
             delay_distance = 0  # meters (modify if delays affect distance)
 
             # Apply delay effects
@@ -147,7 +150,7 @@ class Traversal:
                 text=f"Total Distance: {map_instance.total_distance:.2f} m"
             )
 
-            # Update the status label
+            # Update the status label with the randomized delay_time
             self.components.status_label.config(
                 text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}.",
                 style="Error.TLabel",
