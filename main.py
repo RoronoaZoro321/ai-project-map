@@ -68,7 +68,35 @@ def main():
     # Initialize node list
     root.node_list = []  # List of (lat, lng) tuples
 
+
+
     # Define event handlers
+    def reset():
+        """
+        Resets the visualization and GUI components.
+        """
+        # Clear the routes and visualization
+        visualization.clear_routes()
+        # visualization.clear_visualization()
+        # Reset GUI components
+        components.total_time_label.config(text="Total Time: 00:00")
+        components.total_distance_label.config(text="Total Distance: 0.00 m")
+        components.total_delay_label.config(text="Total Delay Time: 00:00")
+        components.time_difference_label.config(text="Time Difference: 00:00")
+        components.remaining_time_label.config(text="Remaining Time: 00:00")
+        components.remaining_distance_label.config(text="Remaining Distance: 0.00 m")
+        components.status_label.config(text="Status: N/A", style="Error.TLabel")
+        # Reset root attributes
+        root.map_instance = None
+        root.traversal = None
+        root.node_list.clear()
+        print(root.node_list)
+        update_nodes_listbox()
+        # Disable the 'Start Traversal' button
+        components.start_traversal_button.config(state="disabled")
+        # Disable the 'Cancel Traversal' button
+        components.cancel_traversal_button.config(state="disabled")
+    
     def on_add_node():
         """
         Event handler for the 'Add Node' button click.
@@ -376,17 +404,17 @@ def main():
         Event handler for the 'Clear Route' button click.
         """
         visualization.clear_routes()
-        # Removed clearing path_text since it's no longer present
-        components.total_time_label.config(text="Total Time: 00:00")
-        components.total_distance_label.config(text="Total Distance: 0.00 m")
-        components.remaining_time_label.config(text="Remaining Time: 00:00")
-        components.remaining_distance_label.config(text="Remaining Distance: 0.00 m")
-        components.status_label.config(text="Status: N/A", style="Error.TLabel")
-        # Reset delay metrics
-        components.total_delay_label.config(text="Total Delay Time: 00:00")
-        components.time_difference_label.config(text="Time Difference: 00:00")
-        root.map_instance = None
-        root.traversal = None
+        # # Removed clearing path_text since it's no longer present
+        # components.total_time_label.config(text="Total Time: 00:00")
+        # components.total_distance_label.config(text="Total Distance: 0.00 m")
+        # components.remaining_time_label.config(text="Remaining Time: 00:00")
+        # components.remaining_distance_label.config(text="Remaining Distance: 0.00 m")
+        # components.status_label.config(text="Status: N/A", style="Error.TLabel")
+        # # Reset delay metrics
+        # components.total_delay_label.config(text="Total Delay Time: 00:00")
+        # components.time_difference_label.config(text="Time Difference: 00:00")
+        # root.map_instance = None
+        # root.traversal = None
 
 
     def on_view_as_map_button_click():
@@ -433,9 +461,8 @@ def main():
         # open in brave browser
         webbrowser.open("file://" + os.path.realpath("map.html"))
 
-
     # Assign event handlers to buttons    
-    # Assign event handlers to buttons
+    components.reset_button.config(command=reset)
     components.add_node_button.config(command=on_add_node)
     components.remove_node_button.config(command=on_remove_node)
     components.compute_button.config(command=on_compute_button_click)

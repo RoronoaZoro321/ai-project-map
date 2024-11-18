@@ -152,6 +152,10 @@ class Components:
         )
         self.cancel_traversal_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
+        # Reset button
+        self.reset_button = ttk.Button(self.control_frame, text="Reset")
+        self.reset_button.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+
         # Map Display Frame Widgets
         # View Real Map button
         self.view_real_map_button = ttk.Button(
