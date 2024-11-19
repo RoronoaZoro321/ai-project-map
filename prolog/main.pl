@@ -31,10 +31,12 @@
    Transportation Modes and Their Speeds (in km/h)
    =============================================================================
 */
-% mode(TransportationMode, SpeedKPH)
-% Defines the speed for each transportation mode.
+/*
+    mode(TransportationMode, SpeedKPH)
+    Defines the speed for each transportation mode.
+*/
 mode(car, 60).          % Speed for Car
-mode(fast_car, 120).     % Speed for Fast Car
+mode(fast_car, 120).    % Speed for Fast Car
 mode(walking, 5).       % Speed for Walking
 mode(motorcycle, 40).   % Speed for Motorcycle
 
@@ -47,7 +49,7 @@ mode(motorcycle, 40).   % Speed for Motorcycle
 % 
 % Parameters:
 % - Distance: Distance to travel in kilometers.
-% - Mode: Transportation mode (e.g., car, walking, motorcycle).
+% - Mode: Transportation mode (e.g., car, walking, motorcycle, fast_car).
 % - Time: Calculated travel time in hours.
 travel_time(Distance, Mode, Time) :-
     mode(Mode, Speed),
@@ -58,17 +60,12 @@ travel_time(Distance, Mode, Time) :-
    =============================================================================
 */
 
-% Example 1: Calculate travel time for 120 km by car.
-% ?- travel_time(120, car, Time).
-% Expected Output:
-% Time = 2.0.
-
-% Example 2: Calculate travel time for 10 km walking.
-% ?- travel_time(10, walking, Time).
-% Expected Output:
-% Time = 2.0.
-
-% Example 3: Calculate travel time for 80 km by motorcycle.
-% ?- travel_time(80, motorcycle, Time).
-% Expected Output:
-% Time = 2.0.
+/* 
+    Example 1: Calculate travel time for 120 km by fast_car.
+    ?- travel_time(120, fast_car, Time).
+    Time = 1.0.
+    
+    Example 2: Calculate travel time for 10 km fast_car.
+    ?- travel_time(10, fast_car, Time).
+    Time = 0.08333333333333333.
+*/

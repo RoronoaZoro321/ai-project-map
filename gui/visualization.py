@@ -24,13 +24,9 @@ class Visualization:
         self.detailed_route_line = None  # Track the detailed route line
         self.routes_plotted = False  # Track whether routes are currently plotted
 
-    def setup_visualization(self, map_instance, rest_nodes):
+    def setup_visualization(self, map_instance):
         """
         Sets up the visualization for traversal.
-
-        Args:
-            map_instance (Map): The map instance containing the route and graph.
-            rest_nodes (list): List of node IDs that are rest nodes.
         """
         # Set up the figure and axis
         fig = plt.Figure(figsize=(8, 8))
@@ -57,24 +53,13 @@ class Visualization:
         # Customize toolbar button styles
         self.style_toolbar_buttons()
 
-        # Plot the graph with custom node colors and sizes
-        nodes = list(map_instance.G.nodes())
-        node_colors = []
-        node_sizes = []
-        for node in nodes:
-            if node in rest_nodes:
-                node_colors.append("black")  # Rest nodes colored black
-                node_sizes.append(100)  # Larger size for rest nodes
-            else:
-                node_colors.append("skyblue")  # Default node color
-                node_sizes.append(15)  # Default node size
-
+        # Plot the graph
         ox.plot_graph(
             map_instance.G,
             ax=self.ax,
-            node_color=node_colors,
-            node_size=node_sizes,
+            node_color="skyblue",
             edge_color="gray",
+            node_size=15,
             show=False,
             close=False,
         )
@@ -105,6 +90,20 @@ class Visualization:
             markersize=10,
             label="End",
         )
+
+        # Plot rest nodes in black with square markers
+        if hasattr(map_instance, "rest_nodes") and map_instance.rest_nodes:
+            for idx, node_id in enumerate(map_instance.rest_nodes, start=1):
+                lat = map_instance.G.nodes[node_id]["y"]
+                lng = map_instance.G.nodes[node_id]["x"]
+                self.ax.plot(
+                    lng,
+                    lat,
+                    marker="s",  # Square marker for rest nodes
+                    color="black",
+                    markersize=10,
+                    label=f"Rest Node {idx}" if idx == 1 else "",
+                )
 
         # Initialize the line and point plots
         (self.line,) = self.ax.plot([], [], color="purple", linewidth=3, label="Route")
@@ -236,23 +235,16 @@ class Visualization:
         print("Clearing routes from the map...")
 
         # Remove the basic route line
-        if hasattr(self, "route_line") and self.route_line is not None:
-            try:
-                self.route_line.remove()  # Use the remove() method of Line2D
-                self.route_line = None
-            except ValueError:
-                print("route_line already removed or not present.")
+        if self.route_line is not None:
+            if self.route_line in self.ax.lines:
+                self.route_line.remove()
+            self.route_line = None
 
         # Remove the detailed route line
-        if (
-            hasattr(self, "detailed_route_line")
-            and self.detailed_route_line is not None
-        ):
-            try:
-                self.detailed_route_line.remove()  # Use the remove() method of Line2D
-                self.detailed_route_line = None
-            except ValueError:
-                print("detailed_route_line already removed or not present.")
+        if self.detailed_route_line is not None:
+            if self.detailed_route_line in self.ax.lines:
+                self.detailed_route_line.remove()
+            self.detailed_route_line = None
 
         # Clear text annotations manually
         texts_to_remove = list(self.ax.texts)  # Create a copy to avoid iteration issues
