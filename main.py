@@ -151,7 +151,7 @@ def main():
             transportation_mode = components.transportation_mode_var.get()
 
             # Get speed based on transportation mode
-            mode_speed = self.ax.lines.remove(transportation_mode)
+            mode_speed = get_mode_speed(transportation_mode)
 
             # Initialize overall path and total distance
             overall_route = []
@@ -295,7 +295,7 @@ def main():
         if not (-180 <= lng <= 180):
             raise ValueError("Longitude must be between -180 and 180 degrees.")
 
-    def self.ax.lines.remove(mode):
+    def get_mode_speed(mode):
         """
         Retrieves the speed in km/h based on the selected transportation mode.
 

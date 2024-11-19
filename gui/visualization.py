@@ -237,18 +237,22 @@ class Visualization:
 
         # Remove the basic route line
         if hasattr(self, "route_line") and self.route_line is not None:
-            if self.route_line in self.ax.lines:
-                self.ax.lines.remove(self.route_line)
-            self.route_line = None
+            try:
+                self.route_line.remove()  # Use the remove() method of Line2D
+                self.route_line = None
+            except ValueError:
+                print("route_line already removed or not present.")
 
         # Remove the detailed route line
         if (
             hasattr(self, "detailed_route_line")
             and self.detailed_route_line is not None
         ):
-            if self.detailed_route_line in self.ax.lines:
-                self.ax.lines.remove(self.detailed_route_line)
-            self.detailed_route_line = None
+            try:
+                self.detailed_route_line.remove()  # Use the remove() method of Line2D
+                self.detailed_route_line = None
+            except ValueError:
+                print("detailed_route_line already removed or not present.")
 
         # Clear text annotations manually
         texts_to_remove = list(self.ax.texts)  # Create a copy to avoid iteration issues
