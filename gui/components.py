@@ -70,6 +70,7 @@ class Components:
             self.transportation_mode_var,
             "car",
             "car",
+            "fast car",  # Added "fast car" option
             "walking",
             "motorcycle",
         )

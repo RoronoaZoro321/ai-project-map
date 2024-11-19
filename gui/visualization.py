@@ -1,4 +1,6 @@
-import tkinter as tk  # Ensure tkinter is imported
+# gui/visualization.py
+
+import tkinter as tk
 from tkinter import ttk  # Import ttk for custom styling
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.pyplot as plt
@@ -22,9 +24,13 @@ class Visualization:
         self.detailed_route_line = None  # Track the detailed route line
         self.routes_plotted = False  # Track whether routes are currently plotted
 
-    def setup_visualization(self, map_instance):
+    def setup_visualization(self, map_instance, rest_nodes):
         """
         Sets up the visualization for traversal.
+
+        Args:
+            map_instance (Map): The map instance containing the route and graph.
+            rest_nodes (list): List of node IDs that are rest nodes.
         """
         # Set up the figure and axis
         fig = plt.Figure(figsize=(8, 8))
@@ -51,13 +57,24 @@ class Visualization:
         # Customize toolbar button styles
         self.style_toolbar_buttons()
 
-        # Plot the graph
+        # Plot the graph with custom node colors and sizes
+        nodes = list(map_instance.G.nodes())
+        node_colors = []
+        node_sizes = []
+        for node in nodes:
+            if node in rest_nodes:
+                node_colors.append("black")  # Rest nodes colored black
+                node_sizes.append(100)  # Larger size for rest nodes
+            else:
+                node_colors.append("skyblue")  # Default node color
+                node_sizes.append(15)  # Default node size
+
         ox.plot_graph(
             map_instance.G,
             ax=self.ax,
-            node_color="skyblue",
+            node_color=node_colors,
+            node_size=node_sizes,
             edge_color="gray",
-            node_size=15,
             show=False,
             close=False,
         )
@@ -219,15 +236,18 @@ class Visualization:
         print("Clearing routes from the map...")
 
         # Remove the basic route line
-        if self.route_line is not None:
+        if hasattr(self, "route_line") and self.route_line is not None:
             if self.route_line in self.ax.lines:
-                self.route_line.remove()
+                self.ax.lines.remove(self.route_line)
             self.route_line = None
 
         # Remove the detailed route line
-        if self.detailed_route_line is not None:
+        if (
+            hasattr(self, "detailed_route_line")
+            and self.detailed_route_line is not None
+        ):
             if self.detailed_route_line in self.ax.lines:
-                self.detailed_route_line.remove()
+                self.ax.lines.remove(self.detailed_route_line)
             self.detailed_route_line = None
 
         # Clear text annotations manually

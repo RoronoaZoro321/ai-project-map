@@ -34,6 +34,7 @@
 % mode(TransportationMode, SpeedKPH)
 % Defines the speed for each transportation mode.
 mode(car, 60).          % Speed for Car
+mode(fast_car, 120).     % Speed for Fast Car
 mode(walking, 5).       % Speed for Walking
 mode(motorcycle, 40).   % Speed for Motorcycle
 

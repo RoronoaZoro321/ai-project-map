@@ -17,6 +17,8 @@ class Traversal:
         self.delay_label_added = False
         self.total_delay_time = 0  # Initialize total delay time
         self.original_total_time = map_instance.total_time  # Store original total time
+        self.paused = False  # Flag to indicate if traversal is paused
+        self.pause_end_time = None  # Timestamp when pause should end
 
     def set_metrics_labels(self, total_delay_label, time_difference_label):
         """
@@ -30,6 +32,7 @@ class Traversal:
         Starts the traversal process.
         """
         self.cancelled = False
+        self.paused = False
         self.components.status_label.config(
             text="Traversal started.", style="Info.TLabel"
         )
@@ -73,6 +76,19 @@ class Traversal:
             )
             self.log_info("Traversal cancelled.")
             return
+
+        if self.paused:
+            current_time = time.time()
+            if current_time >= self.pause_end_time:
+                self.paused = False
+                self.components.status_label.config(
+                    text="Traversal resumed.", style="Info.TLabel"
+                )
+                self.log_info("Traversal resumed after pause.")
+            else:
+                # Still paused; reschedule update
+                self.schedule_update()
+                return
 
         current_time = time.time()
         delta_time = current_time - getattr(self, "last_update_time", current_time)
@@ -128,18 +144,16 @@ class Traversal:
         # Log current traversal
         self.log_info(f"Traversing from Node {current_node} to Node {next_node}.")
 
-        # Check if this edge has a delay
+        # Check if this edge has a delay (i.e., if the next node is a rest node)
         if (
-            edge in map_instance.delayed_edges
-            and edge not in map_instance.processed_edges
+            next_node in map_instance.rest_nodes
+            and next_node not in map_instance.processed_edges
         ):
-            # Mark this edge as processed
-            map_instance.processed_edges.add(edge)
+            # Mark this rest node as processed
+            map_instance.processed_edges.add(next_node)
 
-            # Define delay parameters with random delay_time
-            delay_time = random.randint(
-                10, 30
-            )  # Random delay between 10 and 30 seconds
+            # Define delay parameters with fixed 5 second delay
+            delay_time = 5  # Fixed delay of 5 seconds
             delay_distance = 0  # meters (modify if delays affect distance)
 
             # Apply delay effects
@@ -171,13 +185,13 @@ class Traversal:
                 text=f"Time Difference: {format_time(time_difference)}"
             )
 
-            # Update the status label with the randomized delay_time
+            # Update the status label with the delay_time
             self.components.status_label.config(
-                text=f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}.",
+                text=f"Rest node reached at Node {next_node}. Traversal paused for {format_time(delay_time)}.",
                 style="Error.TLabel",
             )
             self.log_info(
-                f"Delay occurred on edge ({current_node}, {next_node}). Traversal slowed down by {format_time(delay_time)}."
+                f"Rest node reached at Node {next_node}. Traversal paused for {format_time(delay_time)}."
             )
 
             # Update the segment color to yellow
@@ -208,6 +222,15 @@ class Traversal:
                 self.visualization.delay_label_added = True
 
             self.visualization.canvas.draw()
+
+            # Initiate pause
+            self.paused = True
+            self.pause_end_time = time.time() + delay_time
+            self.components.cancel_traversal_button.config(state="disabled")
+            self.log_info(f"Traversal paused for {delay_time} seconds.")
+
+            # Schedule resumption after delay_time seconds
+            self.root.after(delay_time * 1000, self.resume_traversal)
 
         # Update the marker position based on elapsed time and traversal metrics
         if self.current_index < len(cumulative_times) - 1:
@@ -268,6 +291,18 @@ class Traversal:
 
         # Schedule the next update
         self.schedule_update()
+
+    def resume_traversal(self):
+        """
+        Resumes traversal after a pause.
+        """
+        if not self.cancelled:
+            self.paused = False
+            self.components.cancel_traversal_button.config(state="normal")
+            self.components.status_label.config(
+                text="Traversal resumed.", style="Info.TLabel"
+            )
+            self.log_info("Traversal resumed after pause.")
 
     def cancel(self):
         """

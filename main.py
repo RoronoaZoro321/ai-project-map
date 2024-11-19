@@ -16,7 +16,8 @@ import os
 import osmnx as ox  # Ensure osmnx is imported
 import folium
 from tkhtmlview import HTMLLabel
-import webview
+
+# import webview
 import threading
 import webbrowser
 import folium
@@ -68,8 +69,6 @@ def main():
     # Initialize node list
     root.node_list = []  # List of (lat, lng) tuples
 
-
-
     # Define event handlers
     def reset():
         """
@@ -96,7 +95,7 @@ def main():
         components.start_traversal_button.config(state="disabled")
         # Disable the 'Cancel Traversal' button
         components.cancel_traversal_button.config(state="disabled")
-    
+
     def on_add_node():
         """
         Event handler for the 'Add Node' button click.
@@ -152,7 +151,7 @@ def main():
             transportation_mode = components.transportation_mode_var.get()
 
             # Get speed based on transportation mode
-            mode_speed = get_mode_speed(transportation_mode)
+            mode_speed = self.ax.lines.remove(transportation_mode)
 
             # Initialize overall path and total distance
             overall_route = []
@@ -207,12 +206,32 @@ def main():
             main_map.total_distance = overall_distance
             main_map.prolog_algorithm = algorithm
 
+            # Assign rest nodes based on number of input nodes
+            num_nodes = len(root.node_list)
+            rest_nodes = []
+            if num_nodes == 3:
+                # One rest node: the second node
+                rest_node_lat, rest_node_lng = root.node_list[1]
+                rest_node_id = ox.distance.nearest_nodes(
+                    main_map.G, X=rest_node_lng, Y=rest_node_lat
+                )
+                rest_nodes = [rest_node_id]
+            elif num_nodes == 5:
+                # Three rest nodes: nodes 2, 3, 4
+                for rest_node_lat, rest_node_lng in root.node_list[1:4]:
+                    rest_node_id = ox.distance.nearest_nodes(
+                        main_map.G, X=rest_node_lng, Y=rest_node_lat
+                    )
+                    rest_nodes.append(rest_node_id)
+            # Else: no rest nodes
+
+            main_map.rest_nodes = rest_nodes  # Assign rest nodes to the map
+
             # Calculate traversal metrics
             calculate_traversal_metrics(main_map)
 
             # Update the GUI components
-            # Removed the display_path function call since path display is deleted
-            visualization.setup_visualization(main_map)
+            visualization.setup_visualization(main_map, rest_nodes)
 
             # Update Metrics Labels
             components.total_time_label.config(
@@ -252,6 +271,7 @@ def main():
 
         if root.map_instance:
             root.map_instance.route = route
+            root.map_instance.G = G  # Ensure graph is updated
             return root.map_instance
         else:
             first_node = route[0]
@@ -263,6 +283,7 @@ def main():
 
             aggregated_map = Map(first_coords, last_coords)
             aggregated_map.route = route
+            aggregated_map.G = G
             return aggregated_map
 
     def validate_coordinates(lat, lng):
@@ -274,7 +295,7 @@ def main():
         if not (-180 <= lng <= 180):
             raise ValueError("Longitude must be between -180 and 180 degrees.")
 
-    def get_mode_speed(mode):
+    def self.ax.lines.remove(mode):
         """
         Retrieves the speed in km/h based on the selected transportation mode.
 
@@ -289,6 +310,7 @@ def main():
         """
         mode_speeds = {
             "car": 60.0,  # km/h
+            "fast car": 120.0,  # km/h (faster than car)
             "walking": 5.0,  # km/h
             "motorcycle": 40.0,  # km/h
         }
@@ -404,7 +426,7 @@ def main():
         Event handler for the 'Clear Route' button click.
         """
         visualization.clear_routes()
-        # # Removed clearing path_text since it's no longer present
+        # Optionally reset metrics and status labels if desired
         # components.total_time_label.config(text="Total Time: 00:00")
         # components.total_distance_label.config(text="Total Distance: 0.00 m")
         # components.remaining_time_label.config(text="Remaining Time: 00:00")
@@ -415,7 +437,6 @@ def main():
         # components.time_difference_label.config(text="Time Difference: 00:00")
         # root.map_instance = None
         # root.traversal = None
-
 
     def on_view_as_map_button_click():
         """
@@ -438,30 +459,30 @@ def main():
         )
 
         # Add start and end markers
-        folium.Marker(map_instance.start_location, popup="Start", icon=folium.Icon(color="green")).add_to(folium_map)
-        folium.Marker(map_instance.end_location, popup="End", icon=folium.Icon(color="red")).add_to(folium_map)
+        folium.Marker(
+            map_instance.start_location, popup="Start", icon=folium.Icon(color="green")
+        ).add_to(folium_map)
+        folium.Marker(
+            map_instance.end_location, popup="End", icon=folium.Icon(color="red")
+        ).add_to(folium_map)
 
         # Plot the route
         route_latlng = [
             (map_instance.G.nodes[node]["y"], map_instance.G.nodes[node]["x"])
             for node in map_instance.route
         ]
-        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(folium_map)
+        folium.PolyLine(route_latlng, color="blue", weight=5, opacity=0.7).add_to(
+            folium_map
+        )
 
         # Save Folium map to an HTML file
         html_file_path = "map.html"
         folium_map.save(html_file_path)
 
-        # # Use pywebview to render the map
-        # window_webview = webview.create_window("Interactive Map", html_file_path)
-        # # tkinter window
-        # webview.start(gui="tks")
-
         # Use webbrowser to open the map in the default browser
-        # open in brave browser
         webbrowser.open("file://" + os.path.realpath("map.html"))
 
-    # Assign event handlers to buttons    
+    # Assign event handlers to buttons
     components.reset_button.config(command=reset)
     components.add_node_button.config(command=on_add_node)
     components.remove_node_button.config(command=on_remove_node)
@@ -482,7 +503,7 @@ def main():
     root.mainloop()
 
 
-def aggregate_routes(route):
+def aggregate_routes(route, G):
     """
     Aggregates the individual routes into a single Map instance.
     """
@@ -497,6 +518,7 @@ def aggregate_routes(route):
         root.map_instance if root.map_instance else Map(route[0], route[-1])
     )
     aggregated_map.route = route
+    aggregated_map.G = G
     return aggregated_map
 
 

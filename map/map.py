@@ -37,6 +37,7 @@ class Map:
         self.original_edges = {}
         self.processed_edges = set()  # Set to track edges already evaluated for delays
         self.delayed_edges = []  # List of edges with delays
+        self.rest_nodes = []  # List of rest node IDs
 
     def generate_graph(self, speed_kph):
         """
