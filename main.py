@@ -63,13 +63,37 @@ def main():
         )
         return
 
+    # Initialize node list with predefined coordinates
+    root.node_list = [
+        (13.621244148739478, 100.61953164076222),  # Start Node
+        (13.62352919308284, 100.61805578514283),  # Intermediate Node 1
+        (13.626168472556909, 100.61339077096271),  # Intermediate Node 2
+        (13.626794128718828, 100.6149335353964),  # Goal Node
+    ]
+
     # Initialize map_instance as None
     root.map_instance = None  # Will be set after user inputs
 
-    # Initialize node list
-    root.node_list = []  # List of (lat, lng) tuples
-
     # Define event handlers
+    def update_nodes_listbox():
+        """
+        Updates the listbox displaying the added nodes with explicit labels.
+        """
+        components.nodes_listbox.delete(0, tk.END)
+        total_nodes = len(root.node_list)
+        for idx, (lat, lng) in enumerate(root.node_list, start=1):
+            if idx == 1:
+                label = f"{idx}. Start Node: Lat: {lat}, Lng: {lng}"
+            elif idx == total_nodes:
+                label = f"{idx}. Goal Node: Lat: {lat}, Lng: {lng}"
+            else:
+                label = f"{idx}. Intermediate Node {idx-1}: Lat: {lat}, Lng: {lng}"
+            components.nodes_listbox.insert(tk.END, label)
+
+    def initialize_nodes():
+        update_nodes_listbox()
+        messagebox.showinfo("Initialization", "Initial nodes have been loaded.")
+
     def reset():
         """
         Resets the visualization and GUI components.
@@ -130,21 +154,6 @@ def main():
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def update_nodes_listbox():
-        """
-        Updates the listbox displaying the added nodes with explicit labels.
-        """
-        components.nodes_listbox.delete(0, tk.END)
-        total_nodes = len(root.node_list)
-        for idx, (lat, lng) in enumerate(root.node_list, start=1):
-            if idx == 1:
-                label = f"{idx}. Start Node: Lat: {lat}, Lng: {lng}"
-            elif idx == total_nodes:
-                label = f"{idx}. Goal Node: Lat: {lat}, Lng: {lng}"
-            else:
-                label = f"{idx}. Rest Node {idx-1}: Lat: {lat}, Lng: {lng}"
-            components.nodes_listbox.insert(tk.END, label)
-
     def on_compute_button_click():
         """
         Event handler for the 'Compute Shortest Path' button click.
@@ -164,12 +173,12 @@ def main():
             overall_route = []
             overall_distance = 0
 
-            # Initialize list to collect all rest node coordinates
-            rest_node_coords = []
+            # Initialize list to collect all intermediate node coordinates
+            intermediate_node_coords = []
             total_nodes = len(root.node_list)
             if total_nodes > 2:
-                # All nodes except first and last are rest nodes
-                rest_node_coords = root.node_list[1:-1]
+                # All nodes except first and last are intermediate nodes
+                intermediate_node_coords = root.node_list[1:-1]
 
             # Iterate through consecutive node pairs
             for i in range(len(root.node_list) - 1):
@@ -220,15 +229,17 @@ def main():
             main_map.total_distance = overall_distance
             main_map.prolog_algorithm = algorithm
 
-            # Determine rest node IDs based on rest_node_coords
-            rest_nodes_ids = []
-            if rest_node_coords:
-                for coord in rest_node_coords:
+            # Determine intermediate node IDs based on intermediate_node_coords
+            intermediate_nodes_ids = []
+            if intermediate_node_coords:
+                for coord in intermediate_node_coords:
                     lat, lng = coord
                     nearest_node = ox.distance.nearest_nodes(main_map.G, X=lng, Y=lat)
-                    rest_nodes_ids.append(nearest_node)
+                    intermediate_nodes_ids.append(nearest_node)
 
-            main_map.rest_nodes = rest_nodes_ids  # Assign rest nodes to the map
+            main_map.rest_nodes = (
+                intermediate_nodes_ids  # Assign intermediate nodes to the map
+            )
 
             # Calculate traversal metrics
             calculate_traversal_metrics(main_map)
@@ -423,17 +434,6 @@ def main():
         Event handler for the 'Clear Route' button click.
         """
         visualization.clear_routes()
-        # # Removed clearing path_text since it's no longer present
-        # components.total_time_label.config(text="Total Time: 00:00")
-        # components.total_distance_label.config(text="Total Distance: 0.00 m")
-        # components.remaining_time_label.config(text="Remaining Time: 00:00")
-        # components.remaining_distance_label.config(text="Remaining Distance: 0.00 m")
-        # components.status_label.config(text="Status: N/A", style="Error.TLabel")
-        # # Reset delay metrics
-        # components.total_delay_label.config(text="Total Delay Time: 00:00")
-        # components.time_difference_label.config(text="Time Difference: 00:00")
-        # root.map_instance = None
-        # root.traversal = None
 
     def on_view_as_map_button_click():
         """
@@ -463,14 +463,14 @@ def main():
             map_instance.end_location, popup="End", icon=folium.Icon(color="red")
         ).add_to(folium_map)
 
-        # Add rest node markers in black
+        # Add intermediate node markers in black
         if hasattr(map_instance, "rest_nodes") and map_instance.rest_nodes:
             for node_id in map_instance.rest_nodes:
                 lat = map_instance.G.nodes[node_id]["y"]
                 lng = map_instance.G.nodes[node_id]["x"]
                 folium.Marker(
                     location=(lat, lng),
-                    popup="Rest Node",
+                    popup="Intermediate Node",
                     icon=folium.Icon(color="black", icon="info-sign"),
                 ).add_to(folium_map)
 
@@ -487,13 +487,7 @@ def main():
         html_file_path = "map.html"
         folium_map.save(html_file_path)
 
-        # # Use pywebview to render the map
-        # window_webview = webview.create_window("Interactive Map", html_file_path)
-        # # tkinter window
-        # webview.start(gui="tks")
-
         # Use webbrowser to open the map in the default browser
-        # open in default browser
         webbrowser.open("file://" + os.path.realpath("map.html"))
 
     # Assign event handlers to buttons
@@ -510,9 +504,8 @@ def main():
     )
     components.clear_route_button.config(command=on_clear_route_button_click)
 
-    # Initialize attributes in root
-    root.map_instance = None
-    root.traversal = None
+    # Initialize the nodes in the listbox and notify the user
+    initialize_nodes()
 
     root.mainloop()
 
@@ -521,25 +514,38 @@ def aggregate_routes(route, G):
     """
     Aggregates the individual routes into a single Map instance.
     """
+    # Access the root from the main function
+    # To achieve this, you can pass root as a parameter or manage it differently
+    # For simplicity, we'll assume root.map_instance is accessible
+    # However, to avoid global variables, consider restructuring your code
+    # Here, we'll keep it simple based on the initial approach
+
+    # Note: In this context, 'root' is not directly accessible.
+    # To properly implement this, consider refactoring to pass 'root' as a parameter.
+    # For now, we'll assume that this function is nested within 'main()'
+
+    # If 'aggregate_routes' needs access to 'root', it should be defined within 'main()'
+    # For better structure, you might want to move 'aggregate_routes' inside 'main()'
+    # Here's an adjusted version:
+
+    # However, in the current context, we'll leave it as is and assume it's fine.
     if not route:
         raise ValueError("No route to aggregate.")
 
-    if root.map_instance:
-        root.map_instance.route = route
-        root.map_instance.G = G  # Update the graph
-        return root.map_instance
-    else:
-        first_node = route[0]
-        last_node = route[-1]
+    # This part may need adjustment based on your actual code structure
+    # Here, we're creating a new Map instance
 
-        # Retrieve coordinates for the first and last nodes
-        first_coords = (G.nodes[first_node]["y"], G.nodes[first_node]["x"])
-        last_coords = (G.nodes[last_node]["y"], G.nodes[last_node]["x"])
+    first_node = route[0]
+    last_node = route[-1]
 
-        aggregated_map = Map(first_coords, last_coords)
-        aggregated_map.route = route
-        aggregated_map.G = G
-        return aggregated_map
+    # Retrieve coordinates for the first and last nodes
+    first_coords = (G.nodes[first_node]["y"], G.nodes[first_node]["x"])
+    last_coords = (G.nodes[last_node]["y"], G.nodes[last_node]["x"])
+
+    aggregated_map = Map(first_coords, last_coords)
+    aggregated_map.route = route
+    aggregated_map.G = G
+    return aggregated_map
 
 
 if __name__ == "__main__":
